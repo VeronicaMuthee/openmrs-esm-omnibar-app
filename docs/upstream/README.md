@@ -4,14 +4,12 @@ These are proposals for other OpenMRS repos, not merged work.
 
 ## ChartSearch
 
-`esm-chartsearchai-no-warmup.patch` applies to `openmrs/openmrs-esm-chartsearchai`
-at commit `c2b6bf4`. It removes the chart-open `/warmup` request from the Ask AI
-button. Without that patch, the sandbox still POSTs `/warmup` when a chart
-opens. That request comes from `AiSearchButton`, not from the omnibar.
+The ChartSearch work for the omnibar is no longer a proposal here. It was submitted upstream on 2026-11-03 under epic [O3-6235](https://openmrs.atlassian.net/browse/O3-6235), as two PRs:
 
-The initial-question patch, which let the bar's Ask ChartSearch row fill in
-ChartSearch's chat, was retired with that row in ChartSearch step 3: ChartSearch
-now answers on the Query results page, from its own app.
+- [#86](https://github.com/openmrs/openmrs-esm-chartsearchai/pull/86), which warms the prompt cache when the chat opens instead of on every chart open, ready for review;
+- [#87](https://github.com/openmrs/openmrs-esm-chartsearchai/pull/87), the answer section on Query results and `/ask`, a draft until #86 merges.
+
+The no-warmup patch that used to be here removed the chart-open `/warmup` request outright; #86 replaces it. The initial-question patch was retired with the bar's Ask ChartSearch row in ChartSearch step 3, and its ChartSearch side was left out of #87.
 
 ## Framework (esm-core)
 
