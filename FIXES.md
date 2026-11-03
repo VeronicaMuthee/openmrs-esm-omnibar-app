@@ -1663,7 +1663,7 @@ The reviewer also confirmed that the revert removes every trace of `initialQuest
 The community asked for the omnibar work in other apps to go upstream. The query store is the last piece, and it has two halves:
 
 - **The backend:** Paul's fork of `openmrs-module-querystore`, branch `prototype/omnibar-endpoints`.
-- **The frontend:** `pbiondich/openmrs-esm-querystore-app`. Paul decided it moves to the OpenMRS organization by transfer.
+- **The frontend:** `pbiondich/openmrs-esm-querystore-app`. Paul decided to move it to the OpenMRS organization, and it was transferred to [`openmrs/openmrs-esm-querystore-app`](https://github.com/openmrs/openmrs-esm-querystore-app) the same day.
 
 No ticket or upstream PR is open yet.
 
