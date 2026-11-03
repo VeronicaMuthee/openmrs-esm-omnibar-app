@@ -43,9 +43,9 @@ O3 runs in clinics with poor or no internet, so a change must not add a CDN, web
 
 ## Repo ownership and where changes go
 
-- **This repo** is the owner's own, and changes land here through PRs.
-- **Cohort Builder, the query store and ChartSearch** belong to other maintainers. Changes to them stay as **local variants** on the owner's personal forks and are built into the test server as local tests. **Don't open PRs on upstream `openmrs/*` repos, or push to them,** until the owner has tried the change and agreed. The patches in [`docs/upstream/`](docs/upstream/) are proposals, not merged work.
-- Never merge someone else's PR, and never push to `main` without the owner's OK.
+- **This repo** lives in the OpenMRS organization, at [`openmrs/openmrs-esm-omnibar-app`](https://github.com/openmrs/openmrs-esm-omnibar-app), since 2026-11-03. It used to be `pbiondich/openmrs-esm-omnibar-app`, which now redirects here. Paul still owns it, and changes land through PRs, pushed only when he asks (see [Commits and pushes](#commits-and-pushes)).
+- **Cohort Builder, the query store and ChartSearch** belong to other maintainers. Changes to them stay as **local variants** on Paul's personal forks and are built into the test server as local tests. **Don't open PRs on their upstream `openmrs/*` repos, or push to them,** until Paul has tried the change and agreed. This repo is the one `openmrs/*` exception. The patches in [`docs/upstream/`](docs/upstream/) are proposals, not merged work.
+- Never merge someone else's PR, and never push to `main` without Paul's OK.
 - **On the query store fork,** `prototype/omnibar-endpoints` holds the endpoint work, the candidate to propose upstream. `prototype/omnibar-endpoints-o3` adds benchmark-only commits for o3.pgb.md and must **never** be merged into any `main`. See [`docs/decisions.md`](docs/decisions.md).
 
 ## Review policy
