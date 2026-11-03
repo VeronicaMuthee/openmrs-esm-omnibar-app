@@ -1665,7 +1665,15 @@ The community asked for the omnibar work in other apps to go upstream. The query
 - **The backend:** Paul's fork of `openmrs-module-querystore`, branch `prototype/omnibar-endpoints`.
 - **The frontend:** `pbiondich/openmrs-esm-querystore-app`. Paul decided to move it to the OpenMRS organization, and it was transferred to [`openmrs/openmrs-esm-querystore-app`](https://github.com/openmrs/openmrs-esm-querystore-app) the same day.
 
-No ticket or upstream PR is open yet.
+Tickets and the backend PR, opened with Paul's go-ahead:
+
+| Item | Link |
+| --- | --- |
+| Epic | [O3-6238](https://openmrs.atlassian.net/browse/O3-6238) |
+| Patient endpoints, ready for review | [O3-6239](https://openmrs.atlassian.net/browse/O3-6239), [openmrs/openmrs-module-querystore#101](https://github.com/openmrs/openmrs-module-querystore/pull/101) |
+| The omnibar provider app | [O3-6240](https://openmrs.atlassian.net/browse/O3-6240), no PR yet |
+
+The follow-up branch has no ticket. It waits for Paul's decision and a port.
 
 ### Bringing upstream main into the endpoint branch
 
