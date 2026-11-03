@@ -31,14 +31,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pbiondich/openmrs-esm-omnibar-app.git"
+    "url": "git+https://github.com/openmrs/openmrs-esm-omnibar-app.git"
   },
-  "homepage": "https://github.com/pbiondich/openmrs-esm-omnibar-app#readme",
+  "homepage": "https://github.com/openmrs/openmrs-esm-omnibar-app#readme",
   "publishConfig": {
     "access": "public"
   },
   "bugs": {
-    "url": "https://github.com/pbiondich/openmrs-esm-omnibar-app/issues"
+    "url": "https://github.com/openmrs/openmrs-esm-omnibar-app/issues"
   },
   "dependencies": {
     "classnames": "^2.5.1",

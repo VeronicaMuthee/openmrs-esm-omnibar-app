@@ -307,6 +307,11 @@ Paul's decisions for counting patients by numeric test results; the plan is [the
 **Tests are known only by the concept dictionary's own names and synonyms (Paul, 2026-10-19).** No list of tests or shorthand in code or config. Where people's words are missing, the fix is a synonym in the dictionary. The row also reads each name without a trailing unit in brackets ("Weight (kg)" as "Weight"), which needs no list.
 *Why:* a list in the app is one more thing to maintain at every site, and drifts from the dictionary. On o3, CIEL already carries most of the shorthand (CD4, Hb, Hgb, BMI, SBP, DBP, Cr, Glucose, Blood sugar). The gaps the benchmark found, such as "viral load" and "VL" for HIV viral load (CIEL 856), are better added as synonyms or index terms in CIEL, or locally, where every app that searches concepts gains them.
 
+## 2026-11-03
+
+**The omnibar moves to the OpenMRS organization (Paul).** The repo is now [`openmrs/openmrs-esm-omnibar-app`](https://github.com/openmrs/openmrs-esm-omnibar-app). It was transferred, so the old `pbiondich/openmrs-esm-omnibar-app` links, PRs and issues redirect. Paul still owns it, and the working rules in [AGENTS.md](../AGENTS.md) still apply: PRs, no merging or pushing to `main` without his OK. Cohort Builder, the query store app and ChartSearch stay in his own repos and forks for now.
+*Why:* people using the omnibar asked for it.
+
 ## Open
 
 These came up but aren't decided yet.
