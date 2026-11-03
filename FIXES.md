@@ -1657,3 +1657,62 @@ The reviewer also confirmed that the revert removes every trace of `initialQuest
 - Tests: 802 on `fix/warmup-on-chat-open` (`9a29fcd`) and 848 on `feat/omnibar-query-results` (`29e60bf`). Lint and type check pass on both. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit. `yarn extract-translations` leaves the tree clean.
 - The repo pins yarn 4.2.2. This repo's yarn 4.10.3 rewrites that lockfile, so 4.2.2 was used for the install.
 - Not tried in a browser or on o3 after the merge. #87 links the omnibar's walkthrough for its screenshots, recorded on the fork's `6bb0b4b` before the merge, which didn't touch the view.
+
+## Upstream: the query store readied for submission (Paul, 2026-11-03)
+
+The community asked for the omnibar work in other apps to go upstream. The query store is the last piece, and it has two halves:
+
+- **The backend:** Paul's fork of `openmrs-module-querystore`, branch `prototype/omnibar-endpoints`.
+- **The frontend:** `pbiondich/openmrs-esm-querystore-app`. Paul decided to move it to the OpenMRS organization, and it was transferred to [`openmrs/openmrs-esm-querystore-app`](https://github.com/openmrs/openmrs-esm-querystore-app) the same day.
+
+Tickets and the backend PR, opened with Paul's go-ahead:
+
+| Item | Link |
+| --- | --- |
+| Epic | [O3-6238](https://openmrs.atlassian.net/browse/O3-6238) |
+| Patient endpoints, ready for review | [O3-6239](https://openmrs.atlassian.net/browse/O3-6239), [openmrs/openmrs-module-querystore#101](https://github.com/openmrs/openmrs-module-querystore/pull/101) |
+| The omnibar provider app | [O3-6240](https://openmrs.atlassian.net/browse/O3-6240), no PR yet |
+
+The follow-up branch has no ticket. It waits for Paul's decision and a port.
+
+### Bringing upstream main into the endpoint branch
+
+Upstream `main` had 27 new commits, five of them substantive:
+- #93: deleting Elasticsearch documents at their own version;
+- #94: a restart's top-up skips records already stored at their current version, and sync re-serializes committed state after commit;
+- #95: `GET /querystore/patientrecord`, with explicit completeness;
+- #96: context slices;
+- #97 and #98: question interpretation and retrieval.
+
+`origin/main` (`2a9b727`) was merged into `d6abe61` as `409be8a`, not rebased. 17 files conflicted.
+
+| Area | Resolution |
+| --- | --- |
+| Incomplete projections | Both sides had built one. Upstream's `IncompleteProjectionException`, `isPatientProjectionIncomplete` and in-memory `incompletePatients` are kept. The branch's `PartialProjectionException` is deleted and its callers and tests use upstream's. The branch's `projectIfNotIndexed` stays, and honours `incompletePatients`. |
+| Cold-touch projection | The branch's projection slots stay. `ensureIndexedSafely` returns false when no slot came free, so upstream's `chartTruncated` reports the gap. |
+| `POST /reindex {"patient"}` | The branch's bounded reindex stays: 503 with `Retry-After` when no slot is free. Upstream's 500 for a re-projection that left records out is now `status: "failed"` with a generic error, since the reason goes to the log. Upstream's test was adapted. |
+| Sync | Upstream's `RecordProjector` is kept whole. The branch's obs-edit fix (`DeferredObsListener`, `ObsVersions`) still handles obs, which never reach the projector on the edit path. The ADR's session-lifecycle paragraph is upstream's, plus the branch's sentence on obs. |
+| Logs | The branch's rule holds: no raw exception and no patient or encounter uuid at WARN or ERROR. Every WARN line upstream added moved to `SafeLog`, and `ElasticsearchBackendStore.truncationDisclosure` no longer takes the patient. `WarnLogHygieneTest` found the ones missed at first. |
+| Duplicates | The branch's `bootstrapService()` and its `PatientService` seam in the controller were dropped for upstream's copies. A test double gained upstream's two new `BootstrapService` methods. |
+
+### Review round 1 (two independent adversarial reviews, Claude): one blocker, fixed
+
+The first review covered the merges, plus the frontend's contract recopy. The second covered the endpoints' privacy rules.
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| BLOCKER: a cold-touch read that only waited for another projection of the patient took the chart as complete, because the launcher answers true once that projection ends, even when it failed. The read then said `chartTruncated: false` | The read now asks the launcher's failed set and `isPatientProjectionIncomplete`. Two tests cover it: an incomplete projection, and one that failed outright. The first fails without the fix | `f6b8083`, `b3c25e3` |
+| Re-review of the fix | No blockers. The failed-but-skipped case can't be reached, and the check costs a set lookup on cold patients only | none |
+| MINOR: when `bulkDeleteByPatient` throws inside `reindexPatient`, the patient is marked failed but not incomplete | Not changed. It is upstream's path, and `warm` repairs the patient | none |
+| NIT: `query()` doesn't ask `isPatientProjectionIncomplete` | Not changed. It matters only with no launcher wired, which doesn't happen in production | none |
+| Privacy: the three endpoint rules (patient in the path, no cross-patient search, no full chart) | All three hold. The branch adds no exposure that upstream's `/patientrecord` doesn't already have | none |
+| MAJOR, already recorded in ADR Decision 14: only core's patient read (`getPatientByUuid`, which each endpoint calls first) applies a deployment's patient restrictions | Not changed; it is the design | none |
+| MINOR: `collapse=concept` counts and recent values come from the whole chart, not the hits | By design. Now documented in `docs/rest-api.md`, with the other patient endpoints, which the guide lacked | `a58896c` |
+| MINOR: `recent` reads the full chart per call. MINOR: `warm` has no rate limit beyond the projection slots. NIT: `search` defaults to `wait=true` | Not changed; the ADR lists them as open | none |
+
+- **Frontend contract recopy.** The app's contract folder was recopied from this repo's `main` at `ec92784` (tree `300284f`) and pinned by sha256 (`b615d7f9…`). The reviewer found it byte-identical, and the new optional `completions` field needs no change in the provider. The README and `package.json` links now point at the OpenMRS organization. Branch `chore/contract-ec92784`.
+- **Backend tests.** `mvn -B verify` with JDK 11: 713 api and 88 omod tests pass at `b3c25e3`, which is 0 commits behind upstream and pushed to the fork.
+- **Frontend tests.** `yarn verify`: 165 tests. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit.
+- **`feat/omnibar-backend-followups` isn't part of this.** It was built on the benchmark branch, so it holds its 4 benchmark-only commits, and a dry-run cherry-pick of its 20 other commits conflicts at the second one. It is left for a later PR, after a port.
+- **No new origin.** Nothing here adds a request to another origin.
+- **Not tried** in a browser or on o3 after the merge.

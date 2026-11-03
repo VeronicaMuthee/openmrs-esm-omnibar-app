@@ -4,7 +4,7 @@ A contextually-aware “omnibar” for OpenMRS 3: one always-visible field where
 
 **Status:** prototype, running live on an O3 3.8.0-rc.2 sandbox at [o3.pgb.md](https://o3.pgb.md/openmrs/spa), where you can try it yourself: log in as `demo` with the password `Omnibar1!`. It type-checks, lints, builds and passes its unit tests.
 
-To illustrate how other O3 ESM apps plug in, I've adapted three of them on my own forks and branches, as worked examples of the contract rather than finished features: the [Cohort Builder](https://github.com/pbiondich/openmrs-esm-cohortbuilder-app) answers population questions with a count row, [ChartSearch](https://github.com/pbiondich/openmrs-esm-chartsearchai) answers clinical questions on the Query results page, and a [super simple results viewer leveraging query store](https://github.com/pbiondich/openmrs-esm-querystore-app) looks up chart values from an index. Each registers a provider or a view from its own `routes.json`; the Cohort Builder and ChartSearch work is now submitted upstream, the query store's not yet, and the omnibar itself is naive to all of them.
+To illustrate how other O3 ESM apps plug in, I've adapted three of them on my own forks and branches, as worked examples of the contract rather than finished features: the [Cohort Builder](https://github.com/pbiondich/openmrs-esm-cohortbuilder-app) answers population questions with a count row, [ChartSearch](https://github.com/pbiondich/openmrs-esm-chartsearchai) answers clinical questions on the Query results page, and a [super simple results viewer leveraging query store](https://github.com/openmrs/openmrs-esm-querystore-app) looks up chart values from an index. Each registers a provider or a view from its own `routes.json`; the Cohort Builder and ChartSearch work is now submitted upstream, the query store's not yet, and the omnibar itself is naive to all of them.
 
 ## Demo
 
@@ -141,7 +141,7 @@ The omnibar ships three providers and one view as defaults for now (see [`src/ro
 | --- | --- | --- |
 | Cohort Builder | The count row and `/cohort`, outside a chart | The Cohort Builder's own app, submitted upstream as [#781 to #784](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/781) ([O3-6230](https://openmrs.atlassian.net/browse/O3-6230)); until they merge, the branches on Paul's fork |
 | ChartSearch | The answer section on Query results and `/ask` | ChartSearch's own app, which declares `asksModel` so the bar's hint can name it, submitted upstream as [#87](https://github.com/openmrs/openmrs-esm-chartsearchai/pull/87) ([O3-6235](https://openmrs.atlassian.net/browse/O3-6235)); until it merges, the branch on Paul's fork |
-| Query store | Chart values from the query store's index instead of, or beside, chart lookup | [`openmrs-esm-querystore-app`](https://github.com/pbiondich/openmrs-esm-querystore-app), its own repo |
+| Query store | Chart values from the query store's index instead of, or beside, chart lookup | [`openmrs-esm-querystore-app`](https://github.com/openmrs/openmrs-esm-querystore-app), its own repo |
 
 Each of those registers from its own `routes.json` on its own copy of the contract folder; installing the app is the switch, and the omnibar has no code or config that names it. When an app's server can't be reached, its group shrinks to its heading and "Unavailable right now".
 
