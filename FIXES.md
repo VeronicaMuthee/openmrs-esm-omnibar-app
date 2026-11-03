@@ -1567,3 +1567,48 @@ Not fixed, and why:
 - Tests: 667 at 10bde73, 669 at c6bd2a2. `yarn verify`: `Tasks: 3 successful, 3 total`. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit.
 - No new origin; no new request.
 - Not tried in a browser or on o3.
+
+## Upstream: the Cohort Builder stack submitted to openmrs/openmrs-esm-cohortbuilder-app (Paul, 2026-11-03)
+
+The community asked Paul to submit the Cohort Builder work formally. His decisions:
+- the Cohort Builder stack only, with ChartSearch to follow separately;
+- the first PR ready for review and the rest as drafts that build on it;
+- O3 tickets under one epic.
+
+| Item | Link |
+| --- | --- |
+| Epic | [O3-6230](https://openmrs.atlassian.net/browse/O3-6230) |
+| URL door, ready for review | [O3-6231](https://openmrs.atlassian.net/browse/O3-6231), [#781](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/781) |
+| Count row, draft | [O3-6232](https://openmrs.atlassian.net/browse/O3-6232), [#782](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/782) |
+| Phrases, draft | [O3-6233](https://openmrs.atlassian.net/browse/O3-6233), [#783](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/783) |
+| Test results, draft | [O3-6234](https://openmrs.atlassian.net/browse/O3-6234), [#784](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/784) |
+
+### Bringing upstream main into the stack
+
+Upstream `main` had 16 new commits, several of them builder fixes: #763 (O3-6136), #745, #746, #771, #774, #776, #777 and #778. `origin/main` was merged into `feat/url-definition` and then forward up the stack, never rebased.
+
+The policy where both sides changed the same code:
+- Upstream's version wins where both sides fixed the same thing: Reset, typed dates, error snackbars, the shared `SearchDatePicker`, and paged dropdown lists through `useOpenmrsFetchAll`.
+- The stack keeps what upstream doesn't have.
+
+| Merge | Resolution |
+| --- | --- |
+| `75180ed`, upstream into `feat/url-definition`, 8 files | Upstream's member identifiers, names and `CohortMembersLoadError` are kept, alongside the link work's 200-member cap and uuid checks. #763's tests now use uuid-shaped patient ids, which the uuid check requires. |
+| `b5aae93`, into `feat/omnibar-providers`, 26 files | The lean `v=custom:(uuid,display)` and `program?v=custom:(uuid,name)` representations go on upstream's paged lists. The Safari and membership date fixes, a link's pre-filled selections, and the drug Search disabled until a drug is chosen (through upstream's `isSearchDisabled`) are kept. Composition uses upstream's `tokenizeComposition`. An enrollment search sends `locationList` only when locations are chosen; o3 counts an empty list and a missing one the same (3,100 both ways). The tests that pinned the old framework's unknown-key log now expect none, since `11.0.1-pre.5837` stopped logging it. |
+| `09f84e6`, into `feat/cohort-phrases` | Clean. |
+| `a71128e`, into `feat/cohort-tests` | The Concepts tab's search stays in its utils, with upstream's fix that a value of 0 is searched (#777). "Within the last" counts days, then months, as upstream always has. |
+
+### Review round 1 (independent adversarial review of the merges, Claude): no blockers
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| should: a saved cohort with members that couldn't be shown warned twice, with #763's snackbar and the stack's inline notice | Upstream's snackbar only. The inline notice stays for the 200-member cap. | `e8eadcd`, `4cfb4ce`, merged up as `d839824`, `f0a4341` and `8b5d3ee` |
+| should: no test for the 200-member cap notice | Already covered, in `use-url-definition.test.tsx`, "says when a saved cohort has more members than are shown" | none |
+| nit: saved query descriptions written before the location fix call every method ANY_ENCOUNTER | No change: old history entries keep their text | none |
+
+- Tests: 306 at `4cfb4ce`, 1,299 at `f0a4341` and 1,451 at `8b5d3ee`. `yarn verify`: `Tasks: 3 successful, 3 total`. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit. `yarn extract-translations` leaves the tree clean.
+- Overlaps with work others have open upstream:
+  - #779 (O3-6180) makes the same "within the last" fix.
+  - #780 (O3-6182) fixes the same single-birth-date bug.
+  - The configurable drug order search key bears on O3-6179.
+- Not tried in a browser or on o3 after the merge. The PRs have no screenshots yet.
