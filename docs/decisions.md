@@ -315,6 +315,9 @@ Paul's decisions for counting patients by numeric test results; the plan is [the
 **The Cohort Builder work goes upstream (Paul).** The community asked for the omnibar work in other apps to be submitted formally. The Cohort Builder stack went to `openmrs/openmrs-esm-cohortbuilder-app` as four PRs, #781 to #784, under epic O3-6230 with one story each. #781 is ready for review, and the other three are drafts until the PR before each one merges. Upstream `main` was merged up the stack first: where both sides had fixed the same thing, upstream's fix was kept. ChartSearch follows separately.
 *Why:* upstream can't stack a PR on a fork's branch, so the first PR starts the review small while the drafts show the whole plan. OpenMRS PRs carry a Jira ticket.
 
+**The ChartSearch work goes upstream (Paul).** It went to `openmrs/openmrs-esm-chartsearchai` as two PRs under epic O3-6235: #86 (O3-6236) warms the prompt cache when the chat opens rather than on every chart open, and #87 (O3-6237) adds the answer section on Query results and `/ask`. #86 is ready for review, and #87 is a draft until #86 merges. The fork's two stacked branches became the one feature PR, and the change that let another module open the chat with a question typed in was left out. Upstream `main` was merged in first, through #86's branch.
+*Why:* the warm-up fix doesn't need the omnibar, so it can merge on its own. Without the `commandAsksModel` flag from the second branch, today's omnibar treats `/ask` as an ordinary command, so the two halves only work together. Nothing calls the prefill since the bar's Ask ChartSearch row was deleted (2026-10-18).
+
 ## Open
 
 These came up but aren't decided yet.

@@ -1612,3 +1612,48 @@ The policy where both sides changed the same code:
   - #780 (O3-6182) fixes the same single-birth-date bug.
   - The configurable drug order search key bears on O3-6179.
 - Not tried in a browser or on o3 after the merge. The PRs have no screenshots yet.
+
+## Upstream: ChartSearch submitted to openmrs/openmrs-esm-chartsearchai (Paul, 2026-11-03)
+
+The ChartSearch side of the omnibar followed the Cohort Builder stack. Paul's decisions:
+- the warm-up change (warm the prompt cache when the chat opens, not on every chart open) goes as its own small PR, since it doesn't need the omnibar;
+- the fork's two stacked branches, `feat/query-results-answer` and `feat/ask-flag-initial-question`, become one feature PR, because without `commandAsksModel` today's omnibar treats `/ask` as an ordinary command and nothing asks;
+- `6bb0b4b`, which let another module open the chat with a question typed in, is left out: the omnibar row that needed it was deleted on 2026-10-18, so nothing calls it. It is reverted with a new commit, not dropped from history;
+- O3 tickets under one epic.
+
+| Item | Link |
+| --- | --- |
+| Epic | [O3-6235](https://openmrs.atlassian.net/browse/O3-6235) |
+| Warm-up, ready for review | [O3-6236](https://openmrs.atlassian.net/browse/O3-6236), [#86](https://github.com/openmrs/openmrs-esm-chartsearchai/pull/86) from `fix/warmup-on-chat-open` |
+| Query results answer and `/ask`, draft | [O3-6237](https://openmrs.atlassian.net/browse/O3-6237), [#87](https://github.com/openmrs/openmrs-esm-chartsearchai/pull/87) from `feat/omnibar-query-results` |
+
+The fork's PRs #1 and #2 are replaced by these and can be closed.
+
+### Bringing upstream main into the work
+
+Upstream `main` had 14 new commits, most of them the conversation panel's rework: a staged `/chat/stream` client, chat history, the provider and Hub-profile pickers, and formatted answers (#72 to #76, re-landed as #84), plus #80 to #85. The same policy as the Cohort Builder held: upstream's version wins where both sides changed the same thing, and the work keeps what upstream doesn't have.
+
+| Step | Resolution |
+| --- | --- |
+| `9a29fcd`, the warm-up commit (`c42d5d0`) cherry-picked onto `origin/main` | Upstream had added a rule to the button's chart-open warm-up: nothing is sent while Hub is the provider, and a provider switch aborts it. The rule moves into `AiChatContent` with the warm-up, so a chat on Hub sends nothing. Upstream deleted `chartsearchai.test.ts` when it split the API tests, so the `warmupPatient` tests move to `src/api/warmup.test.ts`. Two tests are added for Hub. |
+| `11cb09d`, revert of `6bb0b4b` | Removes `initialQuestion` from the workspace props, the chat and their tests. |
+| `64d884c`, `fix/warmup-on-chat-open` merged into the feature branch | Upstream comes in through the warm-up branch, so both PRs resolve the warm-up identically and #87 merges cleanly once #86 does. `ai-chat-content.component.tsx` takes the warm-up branch's version, since the feature side's only change to it was the warm-up. `translations/en.json` keeps upstream's keys plus the answer view's and `/ask`'s; extract-translations produces exactly that set. |
+| `e5f5fd0`, contract folder copied again | From this repo's `main` at `ec92784`, byte for byte. Only `types.ts` changed: the optional `completions` field. |
+| `23958f3`, pin test | `src/omnibar-contract.test.ts` pins every file by sha256 and checks that the folder imports only `react`, `react-i18next` and the framework, as the Cohort Builder's does. The hashes match the Cohort Builder's copy. |
+
+The Query results view still calls `/chartsearchai/search/stream`, which upstream's chat no longer uses. The backend module still serves it on the bundled engine and takes no provider, so the page answers with the bundled engine even when the chat is on Hub. #87 says so; a site that runs Hub only should leave the view out of the slot. Moving the view to `/chat/stream` with the chat's provider and profile is a possible follow-up.
+
+### Review round 1 (independent adversarial review of the merges, Claude): no blockers
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| should: the merge kept two copies of the warm-up tests in `ai-chat-content.test.tsx`, the second without the Hub tests | Deleted the second copy | `29e60bf` |
+| should: the Query results page always uses the bundled engine, and fails on a site that runs Hub only | Disclosed in #87 and O3-6237, with the advice to leave the view out of the slot there | none |
+| nit: `AiChatContent` reads the whole chat session store to learn the provider | Not applied. The framework's `useStore` returns `{ ...selected, ...actions }`, so a selector that returns a string such as `'hub'` comes back as an object; trying it broke the two Hub tests. Upstream's button read the store the same way. | none |
+| nit: `en.json` grows by the view's 36 keys | No change: every key is read, and a test fails on one that isn't | none |
+
+The reviewer also confirmed that the revert removes every trace of `initialQuestion`, that the view asks only when `submitted` is set, that it takes the patient from the omnibar's context and never the URL, and that it makes no request to another origin.
+
+- Tests: 802 on `fix/warmup-on-chat-open` (`9a29fcd`) and 848 on `feat/omnibar-query-results` (`29e60bf`). Lint and type check pass on both. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit. `yarn extract-translations` leaves the tree clean.
+- The repo pins yarn 4.2.2. This repo's yarn 4.10.3 rewrites that lockfile, so 4.2.2 was used for the install.
+- Not tried in a browser or on o3 after the merge. #87 links the omnibar's walkthrough for its screenshots, recorded on the fork's `6bb0b4b` before the merge, which didn't touch the view.
