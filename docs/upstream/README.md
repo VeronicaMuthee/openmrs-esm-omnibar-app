@@ -29,6 +29,13 @@ for the root cause, tests and risks.
 
 ## Cohort Builder
 
-`esm-cohortbuilder-url-definition.patch` applies to `openmrs/openmrs-esm-cohortbuilder-app` at `c6d5f1b` (v4.0.7) and merges onto `main` at `1fde640` without conflicts. It is the fork's `feat/url-definition`: "shareable cohort links". The builder opens `?definition=<base64url JSON>` (demographics, enrollment, drug order and encounter criteria), `?cohort=<uuid>` and `?query=<uuid>`, runs it, and describes it in its own words. Any invalid link fails closed with one plain message. It doesn't mention the omnibar. A proposal until Paul says to open it.
+The Cohort Builder work for the omnibar is no longer a proposal here. It was submitted upstream on 2026-11-03 under epic [O3-6230](https://openmrs.atlassian.net/browse/O3-6230), as four PRs that build on each other:
+
+- [#781](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/781), the URL hand-off, ready for review;
+- [#782](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/782), the count row;
+- [#783](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/783), the phrases;
+- [#784](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/784), the test results.
+
+#782 to #784 are drafts until the PR before each one merges. The patch that used to be here was #781's first version.
 
 For the `v=count` proposal (the cohort counts brief, step 5): `adhocquery` evaluates only cohort definitions on the `rowFilters` path, which reporting gates on Get Patients alone, so a user without Run Reports can call it directly. The proposal should check Run Reports on that path too.

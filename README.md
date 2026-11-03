@@ -139,7 +139,7 @@ The omnibar ships three providers and one view as defaults for now (see [`src/ro
 
 | From other apps | What it adds | Where it lives |
 | --- | --- | --- |
-| Cohort Builder | The count row and `/cohort`, outside a chart | Local branches of the Cohort Builder fork; the URL hand-off is [proposed upstream](docs/upstream/) |
+| Cohort Builder | The count row and `/cohort`, outside a chart | The Cohort Builder's own app, submitted upstream as [#781 to #784](https://github.com/openmrs/openmrs-esm-cohortbuilder-app/pull/781) ([O3-6230](https://openmrs.atlassian.net/browse/O3-6230)); until they merge, the branches on Paul's fork |
 | ChartSearch | The answer section on Query results and `/ask` | ChartSearch's own app, which declares `asksModel` so the bar's hint can name it |
 | Query store | Chart values from the query store's index instead of, or beside, chart lookup | [`openmrs-esm-querystore-app`](https://github.com/pbiondich/openmrs-esm-querystore-app), its own repo |
 
