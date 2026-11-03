@@ -82,6 +82,7 @@
   "sidePanelNotOpened": "Couldn’t open the side panel",
   "sidePanelNotOpenedSubtitle": "The side panel was closed or opened for another patient. Open it again on this chart, then search again.",
   "sources": "Sources",
+  "tabToComplete": "Tab to complete: {{label}}",
   "thinking": "Working on an answer",
   "thisChart": "This chart",
   "thisPatient": "this patient",
