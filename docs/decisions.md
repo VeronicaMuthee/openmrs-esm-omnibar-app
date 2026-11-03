@@ -312,6 +312,9 @@ Paul's decisions for counting patients by numeric test results; the plan is [the
 **The omnibar moves to the OpenMRS organization (Paul).** The repo is now [`openmrs/openmrs-esm-omnibar-app`](https://github.com/openmrs/openmrs-esm-omnibar-app). It was transferred, so the old `pbiondich/openmrs-esm-omnibar-app` links, PRs and issues redirect. Paul still owns it, and the working rules in [AGENTS.md](../AGENTS.md) still apply: PRs, no merging or pushing to `main` without his OK. Cohort Builder, the query store app and ChartSearch stay in his own repos and forks for now.
 *Why:* people using the omnibar asked for it.
 
+**The Cohort Builder work goes upstream (Paul).** The community asked for the omnibar work in other apps to be submitted formally. The Cohort Builder stack went to `openmrs/openmrs-esm-cohortbuilder-app` as four PRs, #781 to #784, under epic O3-6230 with one story each. #781 is ready for review, and the other three are drafts until the PR before each one merges. Upstream `main` was merged up the stack first: where both sides had fixed the same thing, upstream's fix was kept. ChartSearch follows separately.
+*Why:* upstream can't stack a PR on a fork's branch, so the first PR starts the review small while the drafts show the whole plan. OpenMRS PRs carry a Jira ticket.
+
 ## Open
 
 These came up but aren't decided yet.
