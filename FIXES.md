@@ -1728,4 +1728,4 @@ The review confirmed that only the label and its existing test expectations chan
 - `yarn verify`: lint, TypeScript and all 669 tests with coverage pass.
 - `yarn build`: passes with the existing asset-size warning for shared fallback chunks.
 - `yarn extract-translations`: preserves the new label and produces no other catalog changes.
-- No layout or runtime behavior changes. This label change was checked through the existing command and Query results tests, not in a browser.
+- Browser check: a `/lab weight` query shows the "Chart values" pill beside "Results for “weight”". The PR screenshot in `docs/media/chart-values-command.png` is cropped to this heading and contains no patient details. No layout or runtime behavior changes.
