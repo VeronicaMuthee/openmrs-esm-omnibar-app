@@ -430,7 +430,7 @@ describe('the Query results page under a slash command', () => {
     expect(screen.queryByText('Notes: cd4')).not.toBeInTheDocument();
     expect(lab.at(-1).context.command).toEqual({ id: 'lab' });
     // The chip the bar showed, then the text.
-    expect(screen.getByRole('heading', { name: 'Lab results : Results for “cd4”' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Chart values : Results for “cd4”' })).toBeInTheDocument();
   });
 
   it('mounts every view for a plain query, with no command in the context', () => {
@@ -550,7 +550,7 @@ describe('the Query results page under a slash command', () => {
     render(<QueryResultsPage patientUuid={humprey} patient={patient} />);
     const history = screen.getByRole('navigation', { name: 'Earlier this session' });
     const items = within(history).getAllByRole('button');
-    expect(items.map((item) => item.textContent)).toEqual(['Lab results:  cd4', 'weight']);
+    expect(items.map((item) => item.textContent)).toEqual(['Chart values:  cd4', 'weight']);
 
     // Choosing it runs it again with its command, and, under /lab, isn't marked as asked for.
     await user.click(items[0]);

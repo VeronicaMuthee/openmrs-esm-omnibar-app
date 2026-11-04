@@ -321,6 +321,11 @@ Paul's decisions for counting patients by numeric test results; the plan is [the
 **The query store work is readied for upstream, and its app moves to the OpenMRS organization (Paul).** The endpoint branch, `prototype/omnibar-endpoints` on Paul's fork of `openmrs-module-querystore`, now has upstream `main` merged in and is the candidate for one PR. It went up as [openmrs/openmrs-module-querystore#101](https://github.com/openmrs/openmrs-module-querystore/pull/101), under epic [O3-6238](https://openmrs.atlassian.net/browse/O3-6238) with stories O3-6239 (the endpoints) and O3-6240 (the app). The fork's `feat/omnibar-backend-followups` (retrying failed charts, serving a projecting chart's rows) is left for a later PR: it was built on the benchmark branch, `prototype/omnibar-endpoints-o3`, so it carries benchmark-only commits and has to be ported first. The frontend was transferred from `pbiondich/openmrs-esm-querystore-app` to [`openmrs/openmrs-esm-querystore-app`](https://github.com/openmrs/openmrs-esm-querystore-app), as the omnibar was, so the old links redirect. It wasn't moved into a `frontend/` folder of the module (§4A.1 of the provider registration plan). Paul owns it, and it takes changes through PRs, like this repo.
 *Why:* the app is already a complete repo with its own CI and a pinned contract copy, the other integrations' frontends each live in their own esm repo, and the backend PR stands on its own either way. A `frontend/` folder would add a Node toolchain and an npm release to a Maven repo owned by other maintainers. Upstream has meanwhile added `GET /querystore/patientrecord` (#95), which serves a full chart, a cross-patient search and the patient as a query parameter. The omnibar's endpoints keep the three endpoint rules of 2026-10-18 all the same, and the PR says why they are separate.
 
+## 2026-11-04
+
+**The `/lab` command's label is Chart values.** The command searches recorded observations, including vitals such as weight, so its label should cover more than laboratory results. The command id remains `lab`, and the existing aliases (`lab`, `labs`, `results`, `obs`, `value`) stay the same. This replaces the built-in label recorded above.
+*Why:* requested after reviewing the pill shown for a weight query.
+
 ## Open
 
 These came up but aren't decided yet.

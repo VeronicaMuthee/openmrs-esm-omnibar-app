@@ -200,7 +200,7 @@ describe('slash commands in the bar', () => {
       ).toEqual([
         expect.stringContaining('Patients'),
         expect.stringContaining('Pages'),
-        expect.stringContaining('Lab results'),
+        expect.stringContaining('Chart values'),
       ]);
       expect(screen.getByText('↑ ↓ to move, Enter or Tab to choose a command, Esc to close')).toBeInTheDocument();
     });
@@ -239,7 +239,7 @@ describe('slash commands in the bar', () => {
       await user.type(screen.getByRole('combobox'), '/re');
       const options = within(screen.getByRole('listbox', { name: 'Commands' })).getAllByRole('option');
       expect(options).toHaveLength(1);
-      expect(options[0]).toHaveTextContent('Lab results');
+      expect(options[0]).toHaveTextContent('Chart values');
       expect(options[0]).toHaveTextContent('/lab /labs /results /obs /value');
       expect(options[0]).toHaveTextContent('Lab results and other values in this chart');
       expect(patients.seen.filter((seen) => seen.query.startsWith('/'))).toEqual([]);
@@ -261,18 +261,18 @@ describe('slash commands in the bar', () => {
       render(<Omnibar />);
 
       await user.type(screen.getByRole('combobox'), '/la');
-      const lab = screen.getByRole('option', { name: /lab results/i });
+      const lab = screen.getByRole('option', { name: /chart values/i });
       expect(lab).toHaveAttribute('aria-disabled', 'true');
       expect(lab).toHaveTextContent('Open a patient’s chart first');
 
       await user.click(lab);
       await user.keyboard('{Enter}');
-      expect(screen.queryByText('Lab results', { selector: '[class*="commandChip"] *' })).not.toBeInTheDocument();
+      expect(screen.queryByText('Chart values', { selector: '[class*="commandChip"] *' })).not.toBeInTheDocument();
       expect(screen.getByRole('combobox')).toHaveValue('/la');
 
       // Typed in full, it stays text, and says why.
       await user.type(screen.getByRole('combobox'), 'b cd4');
-      expect(screen.getByText('Lab results: Open a patient’s chart first')).toBeInTheDocument();
+      expect(screen.getByText('Chart values: Open a patient’s chart first')).toBeInTheDocument();
       expect(labs.seen).toEqual([]);
     });
 
@@ -285,7 +285,7 @@ describe('slash commands in the bar', () => {
       await user.click(screen.getByRole('combobox'));
       await user.click(screen.getByRole('button', { name: 'Remove Jane Doe context' }));
       await user.type(screen.getByRole('combobox'), '/lab');
-      expect(screen.getByRole('option', { name: /lab results/i })).toHaveTextContent(
+      expect(screen.getByRole('option', { name: /chart values/i })).toHaveTextContent(
         'Search only Jane Doe’s chart first',
       );
     });
@@ -300,7 +300,7 @@ describe('slash commands in the bar', () => {
       await user.type(field, '/');
       expect(screen.getByRole('option', { name: /patients/i })).toHaveAttribute('aria-selected', 'true');
       await user.keyboard('{ArrowDown}{Enter}');
-      expect(screen.getByText('Lab results')).toBeInTheDocument();
+      expect(screen.getByText('Chart values')).toBeInTheDocument();
       expect(field).toHaveValue('');
 
       await user.keyboard('{Escape}');
@@ -353,7 +353,7 @@ describe('slash commands in the bar', () => {
         within(screen.getByRole('listbox', { name: 'Commands' }))
           .getAllByRole('option')
           .map((option) => [
-            ['Patients', 'cohort', 'Pages', 'Lab results'].find((label) => option.textContent.startsWith(label)),
+            ['Patients', 'cohort', 'Pages', 'Chart values'].find((label) => option.textContent.startsWith(label)),
             option.getAttribute('aria-disabled'),
           ]);
 
@@ -367,7 +367,7 @@ describe('slash commands in the bar', () => {
           ['Patients', 'false'],
           ['cohort', 'false'],
           ['Pages', 'false'],
-          ['Lab results', 'true'],
+          ['Chart values', 'true'],
         ]);
         expect(screen.getByRole('option', { name: /patients/i })).toHaveAttribute('aria-selected', 'true');
         await user.keyboard('{ArrowDown}{Enter}');
@@ -385,7 +385,7 @@ describe('slash commands in the bar', () => {
         await user.type(screen.getByRole('combobox'), '/');
         expect(listed()).toEqual([
           ['Patients', 'false'],
-          ['Lab results', 'false'],
+          ['Chart values', 'false'],
           ['Pages', 'false'],
           ['cohort', 'true'],
         ]);
@@ -408,7 +408,7 @@ describe('slash commands in the bar', () => {
       await user.type(field, '/RESULTS cd4');
 
       expect(field).toHaveValue('cd4');
-      expect(screen.getByText('Lab results')).toBeInTheDocument();
+      expect(screen.getByText('Chart values')).toBeInTheDocument();
       expect(screen.getByText('Jane Doe')).toBeInTheDocument();
       expect(labs.seen.at(-1)).toEqual({ query: 'cd4', command: 'lab' });
       // Only the providers declaring the command are mounted, and none saw the slash.
@@ -483,9 +483,9 @@ describe('slash commands in the bar', () => {
 
       await user.type(field, '/lab x');
       await user.keyboard('{Backspace}');
-      expect(screen.getByText('Lab results')).toBeInTheDocument();
+      expect(screen.getByText('Chart values')).toBeInTheDocument();
       await user.keyboard('{Backspace}');
-      expect(screen.queryByText('Lab results')).not.toBeInTheDocument();
+      expect(screen.queryByText('Chart values')).not.toBeInTheDocument();
       expect(screen.getByText('Jane Doe')).toBeInTheDocument();
       await user.keyboard('{Backspace}');
       expect(screen.getByText('Jane Doe')).toBeInTheDocument();
@@ -500,7 +500,7 @@ describe('slash commands in the bar', () => {
 
       await user.type(screen.getByRole('combobox'), '/lab ');
       fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Backspace', repeat: true });
-      expect(screen.getByText('Lab results')).toBeInTheDocument();
+      expect(screen.getByText('Chart values')).toBeInTheDocument();
     });
 
     it('takes the chip off with the first Escape, keeping the text, and closes with the second', async () => {
@@ -512,7 +512,7 @@ describe('slash commands in the bar', () => {
 
       await user.type(field, '/lab cd4');
       await user.keyboard('{Escape}');
-      expect(screen.queryByText('Lab results')).not.toBeInTheDocument();
+      expect(screen.queryByText('Chart values')).not.toBeInTheDocument();
       expect(field).toHaveValue('cd4');
       expect(screen.getByRole('listbox')).toBeInTheDocument();
       expect(patients.seen.at(-1)).toEqual({ query: 'cd4', command: undefined });
@@ -528,8 +528,8 @@ describe('slash commands in the bar', () => {
       render(<Omnibar />);
 
       await user.type(screen.getByRole('combobox'), '/lab cd4');
-      await user.click(screen.getByRole('button', { name: 'Remove Lab results command' }));
-      expect(screen.queryByText('Lab results')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Remove Chart values command' }));
+      expect(screen.queryByText('Chart values')).not.toBeInTheDocument();
       expect(screen.getByRole('combobox')).toHaveFocus();
     });
 
@@ -541,7 +541,7 @@ describe('slash commands in the bar', () => {
 
       await user.type(screen.getByRole('combobox'), '/lab cd4');
       await user.click(screen.getByRole('button', { name: 'Remove Jane Doe context' }));
-      expect(screen.queryByText('Lab results')).not.toBeInTheDocument();
+      expect(screen.queryByText('Chart values')).not.toBeInTheDocument();
     });
   });
 
@@ -553,7 +553,7 @@ describe('slash commands in the bar', () => {
       render(<Omnibar />);
 
       await user.type(screen.getByRole('combobox'), '/lab cd4');
-      expect(screen.getByRole('button', { name: 'Enter to see Lab results for “cd4”' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Enter to see Chart values for “cd4”' })).toBeInTheDocument();
       await user.keyboard('{Enter}');
 
       expect(landedOn()).toBe(queryResultsFor({ cmd: 'lab', q: 'cd4' }));
@@ -946,7 +946,7 @@ describe('slash commands in the bar', () => {
       render(<Omnibar />);
 
       await user.type(screen.getByRole('combobox'), '/lab cd4');
-      expect(await screen.findByRole('button', { name: 'Enter to see Lab results for “cd4”' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Enter to see Chart values for “cd4”' })).toBeInTheDocument();
       await user.keyboard('{Enter}');
 
       expect(landedOn()).toBe(queryResultsFor({ cmd: 'lab', q: 'cd4' }));
@@ -1018,7 +1018,7 @@ describe('slash commands in the bar', () => {
       await user.type(field, '/');
       // Patients is gone; the list shows the first five aliases of each command.
       expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-        'Lab results/lab /labs /results /obs /valueLab results and other values in this chart',
+        'Chart values/lab /labs /results /obs /valueLab results and other values in this chart',
         'Pages/navOpen a page or app',
       ]);
 

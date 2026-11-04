@@ -378,7 +378,7 @@ describe('the slash-command alias table', () => {
       const table = buildCommandTable(builtIns, [], 'en', fromEn);
       expect(table.commands.map(({ id, label, aliases, scopes }) => ({ id, label, aliases, scopes }))).toEqual([
         { id: 'patient', label: 'Patients', aliases: ['patient', 'pt', 'find'], scopes: ['global', 'patient'] },
-        { id: 'lab', label: 'Lab results', aliases: ['lab', 'labs', 'results', 'obs', 'value'], scopes: ['patient'] },
+        { id: 'lab', label: 'Chart values', aliases: ['lab', 'labs', 'results', 'obs', 'value'], scopes: ['patient'] },
         { id: 'go', label: 'Pages', aliases: ['go', 'open', 'page'], scopes: ['global', 'patient'] },
       ]);
       expect(getOmnibarCommandConflicts()).toEqual([]);
