@@ -45,7 +45,7 @@
     "lab": {
       "aliases": "lab, labs, results, obs, value",
       "description": "Lab results and other values in this chart",
-      "label": "Lab results"
+      "label": "Chart values"
     },
     "patient": {
       "aliases": "patient, pt, find",

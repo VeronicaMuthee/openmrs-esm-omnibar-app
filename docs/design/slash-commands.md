@@ -35,7 +35,7 @@ Several providers declaring the same id is normal: chart lookup and the query st
 
 **Empty query under a command.** `/lab` with nothing after it mounts the lab providers with an empty query, and each does what it does for an empty field today: the query store shows the patient's recent values, chart lookup shows nothing, patient search under `/patient` shows recently viewed patients.
 
-**Enter under a command.** Inside a chart, Enter sends the command and the query to Query results (see below), with the bar's hint saying so beforehand: "Enter to see lab results for 'cd4'", or under `/ask`, "Enter to ask ChartSearch '…'". The exceptions are the same as for plain text: a row the user arrowed or pointed to since their last keystroke opens instead, an ID-shaped query keeps Enter opening the highlight, and `queryResults.enterBehavior: 'open-highlight'` restores the old behaviour for everything. Outside a chart there is no Query results page, so Enter opens the highlight as today.
+**Enter under a command.** Inside a chart, Enter sends the command and the query to Query results (see below), with the bar's hint saying so beforehand: "Enter to see Chart values for 'cd4'", or under `/ask`, "Enter to ask ChartSearch '…'". The exceptions are the same as for plain text: a row the user arrowed or pointed to since their last keystroke opens instead, an ID-shaped query keeps Enter opening the highlight, and `queryResults.enterBehavior: 'open-highlight'` restores the old behaviour for everything. Outside a chart there is no Query results page, so Enter opens the highlight as today.
 
 **Tablet and phone.** The sheet behaves the same way: `/` as the first character enters command mode and the list fills the sheet. There's no global `/` shortcut without a keyboard.
 

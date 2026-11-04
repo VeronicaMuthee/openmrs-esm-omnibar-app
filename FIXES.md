@@ -1716,3 +1716,16 @@ The first review covered the merges, plus the frontend's contract recopy. The se
 - **`feat/omnibar-backend-followups` isn't part of this.** It was built on the benchmark branch, so it holds its 4 benchmark-only commits, and a dry-run cherry-pick of its 20 other commits conflicts at the second one. It is left for a later PR, after a port.
 - **No new origin.** Nothing here adds a request to another origin.
 - **Not tried** in a browser or on o3 after the merge.
+
+## Fix: call the chart lookup command Chart values (2026-11-04)
+
+The `/lab` pill said "Lab results" for queries such as weight, although the command also searches vitals and other recorded observations. Its English label is now "Chart values". The command id and all aliases (`lab`, `labs`, `results`, `obs`, `value`) are unchanged. The shared command label also updates the command list, removal button, hints, Query results heading and history.
+
+### Review round 1 (independent quick review): no findings
+
+The review confirmed that only the label and its existing test expectations change, the aliases and routes are untouched, and the documentation records the new label without rewriting the earlier decision.
+
+- `yarn verify`: lint, TypeScript and all 669 tests with coverage pass.
+- `yarn build`: passes with the existing asset-size warning for shared fallback chunks.
+- `yarn extract-translations`: preserves the new label and produces no other catalog changes.
+- No layout or runtime behavior changes. This label change was checked through the existing command and Query results tests, not in a browser.
