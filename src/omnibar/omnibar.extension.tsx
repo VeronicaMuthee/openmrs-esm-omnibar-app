@@ -481,8 +481,8 @@ const Omnibar: React.FC = () => {
   const containerRef = useOnClickOutside<HTMLDivElement>(closeBar, open && desktop);
 
   // A workspace whose chart group closed, or opened for another patient, after its row was drawn is
-  // refused, as is one whose props name another patient than the chart's, and a link off this site.
-  // A launch can also fail. The bar has closed by then, so a snackbar says nothing opened.
+  // refused, as is a workspace or modal whose props name another patient than the chart's, and a link
+  // off this site. A launch can also fail. The bar has closed by then, so a snackbar says nothing opened.
   const runTarget = useCallback(
     (target: OmnibarTarget) => {
       const warn = () =>
@@ -493,14 +493,20 @@ const Omnibar: React.FC = () => {
                 title: t('resultNotOpened', 'Couldn’t open that result'),
                 subtitle: t('resultNotOpenedSubtitle', 'It links to a page outside this site.'),
               }
-            : {
-                kind: 'warning',
-                title: t('sidePanelNotOpened', 'Couldn’t open the side panel'),
-                subtitle: t(
-                  'sidePanelNotOpenedSubtitle',
-                  'The side panel was closed or opened for another patient. Open it again on this chart, then search again.',
-                ),
-              },
+            : target.type === 'modal'
+              ? {
+                  kind: 'warning',
+                  title: t('dialogNotOpened', 'Couldn’t open that dialog'),
+                  subtitle: t('dialogNotOpenedSubtitle', 'It was for another patient than this chart’s.'),
+                }
+              : {
+                  kind: 'warning',
+                  title: t('sidePanelNotOpened', 'Couldn’t open the side panel'),
+                  subtitle: t(
+                    'sidePanelNotOpenedSubtitle',
+                    'The side panel was closed or opened for another patient. Open it again on this chart, then search again.',
+                  ),
+                },
         );
       executeTarget(target, scopePatientUuid).then((opened) => opened || warn(), warn);
     },

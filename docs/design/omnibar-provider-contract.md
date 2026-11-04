@@ -23,7 +23,8 @@ Providers are installed frontend modules: trusted code. Any of them could call `
   - in a link, an id after `patient/` in the query string or hash, once decoded, as in `?next=%2Fpatient%2F<id>%2Fchart`;
   - an id is a UUID (8-4-4-4-12 hex digits, any case) or the same 32 hex digits without hyphens. Ids compare without regard to case, so the 32-digit form of the chart's own UUID counts as another patient;
   - a link that can't be parsed, or that still holds a `${` placeholder after interpolation, names no one the host can vouch for, so it is treated as another patient;
-  - in a workspace, a string `patientUuid` in any of `workspaceProps`, `windowProps` or `groupProps`, decoded the same way.
+  - in a workspace, a string `patientUuid` in any of `workspaceProps`, `windowProps` or `groupProps`, decoded the same way;
+  - in a modal, a string `patientUuid` in `modalProps`, decoded the same way. Inside a chart, a modal whose props name another patient is refused.
 
   Anything else, such as a patient id in another place in the path, is not recognized.
 - **Stale data.** A report for another query is dropped, and so is one from a mount for a chart or scope the user has left, from before the bar was closed and opened again, or from before the provider was unmounted. Enter runs only the target that was highlighted: a row reported again with another target loses the highlight instead, and a row the user arrowed to that goes away is never swapped for another. A highlight the user didn't choose stays where it first landed, except inside a chart, where it moves up to a chart value that arrives from a provider ranked before it, and is withdrawn while such a provider hasn't answered ([the default highlight](#the-default-highlight)). Enter always opens the row drawn highlighted.
@@ -197,6 +198,7 @@ A result without a text `id` and `title`, or with a target the host doesn't know
 | --- | --- | --- |
 | `navigate` | `to` | `navigate()` to a page on this site. `${openmrsSpaBase}` and the other placeholders work. Any other origin, credentials in the URL, a `javascript:` or `data:` URL, or a link that can't be read is refused, and a warning snackbar says so |
 | `workspace` | `workspaceName`, `workspaceProps?`, `windowProps?`, `groupProps?`, `requiresOpenGroup?` | `launchWorkspace2`. With `requiresOpenGroup: { workspaceName, patientUuid }`, the launch is refused unless that workspace's group is still open for that patient. It is also refused when any of `workspaceProps`, `windowProps` or `groupProps` has a string `patientUuid` other than that patient or, inside a chart, the chart's patient, with or without `requiresOpenGroup`. A refused or failed launch shows a warning snackbar |
+| `modal` | `modalName`, `modalProps?` | *New in v1.* `showModal(modalName, { ...modalProps, closeModal })`, for an action that confirms in a dialog, such as ending a visit. Inside a chart it is refused, with a warning snackbar, when `modalProps` has a string `patientUuid` other than the chart's patient. Older hosts drop a result with this target, so a provider that needs them to show the row reports a `workspace` or `navigate` target instead |
 
 The host keeps its own copy of the target of each result, and remembers the target of the highlighted row. If the provider reports that row again, under the same id, with another target, Enter and a click on it clear the highlight and open nothing. The same target written with its keys in another order is not another target. Changing a reported object without reporting again changes nothing.
 

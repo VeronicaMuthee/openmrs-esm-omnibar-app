@@ -15,6 +15,7 @@ import {
   navigate,
   openmrsFetch,
   PatientPhoto,
+  showModal,
   showSnackbar,
   showToast,
   useAssignedExtensions,
@@ -369,6 +370,56 @@ describe('executeTarget', () => {
   ])('refuses to follow %s, and says so by resolving false', async (to) => {
     expect(await executeTarget({ type: 'navigate', to })).toBe(false);
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('opens a modal with its props, adding a closeModal that disposes it', async () => {
+    const dispose = vi.fn();
+    vi.mocked(showModal).mockReturnValue(dispose);
+    const chartPatient = '4d6c2b1a-0000-4000-8000-000000000001';
+
+    expect(
+      await executeTarget(
+        { type: 'modal', modalName: 'end-visit-dialog', modalProps: { patientUuid: chartPatient } },
+        chartPatient,
+      ),
+    ).toBe(true);
+    expect(showModal).toHaveBeenCalledWith('end-visit-dialog', {
+      patientUuid: chartPatient,
+      closeModal: expect.any(Function),
+    });
+    (vi.mocked(showModal).mock.calls[0][1] as { closeModal: () => void }).closeModal();
+    expect(dispose).toHaveBeenCalled();
+  });
+
+  it('refuses a modal whose props name another patient than the chart’s', async () => {
+    expect(
+      await executeTarget(
+        {
+          type: 'modal',
+          modalName: 'end-visit-dialog',
+          modalProps: { patientUuid: '4d6c2b1a-0000-4000-8000-000000000002' },
+        },
+        '4d6c2b1a-0000-4000-8000-000000000001',
+      ),
+    ).toBe(false);
+    expect(showModal).not.toHaveBeenCalled();
+  });
+});
+
+describe('modal targets in reports', () => {
+  const withTarget = (target: unknown) =>
+    cleanReport({ query: 'q', title: 'T', status: 'ready', results: [{ id: 'r', title: 'Row', target }] as never });
+
+  it('keeps a modal result, with its own copy of the props', () => {
+    const modalProps = { patientUuid: 'p' };
+    const [result] = withTarget({ type: 'modal', modalName: 'end-visit-dialog', modalProps }).results;
+    modalProps.patientUuid = 'changed';
+
+    expect(result.target).toEqual({ type: 'modal', modalName: 'end-visit-dialog', modalProps: { patientUuid: 'p' } });
+  });
+
+  it('drops a modal result without a modal name', () => {
+    expect(withTarget({ type: 'modal', modalProps: {} }).results).toEqual([]);
   });
 });
 

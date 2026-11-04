@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { interpolateUrl, launchWorkspace2, navigate } from '@openmrs/esm-framework';
+import { interpolateUrl, launchWorkspace2, navigate, showModal } from '@openmrs/esm-framework';
 import { decodeSegment, patientIdsInPath, patientIdsInText } from './patient-path';
 import { getWorkspace2Store, workspaceGroupIsOpen } from './workspace-group';
 import { looksLikeIdentifier } from '../omnibar-contract';
@@ -133,6 +133,9 @@ function copyTarget(target: OmnibarTarget): OmnibarTarget {
   if (target.type === 'navigate') {
     return { type: 'navigate', to: target.to };
   }
+  if (target.type === 'modal') {
+    return { type: 'modal', modalName: target.modalName, modalProps: copyOf(target.modalProps) };
+  }
   const required: unknown = target.requiresOpenGroup;
   return {
     type: 'workspace',
@@ -153,7 +156,8 @@ function isKnownTarget(target: unknown): target is OmnibarTarget {
   return (
     isObject(target) &&
     ((target.type === 'navigate' && typeof target.to === 'string') ||
-      (target.type === 'workspace' && typeof target.workspaceName === 'string'))
+      (target.type === 'workspace' && typeof target.workspaceName === 'string') ||
+      (target.type === 'modal' && typeof target.modalName === 'string'))
   );
 }
 
@@ -630,7 +634,9 @@ function patientsNamedBy(target: OmnibarTarget): Array<string> | null {
     }
     return [...patientIdsInPath(url.pathname), ...patientIdsInText(url.search + url.hash)];
   }
-  return [target.workspaceProps, target.windowProps, target.groupProps]
+  const bags =
+    target.type === 'modal' ? [target.modalProps] : [target.workspaceProps, target.windowProps, target.groupProps];
+  return bags
     .map((props) => (props as { patientUuid?: unknown } | undefined)?.patientUuid)
     .filter((uuid): uuid is string => typeof uuid === 'string')
     .map(decodeSegment);
@@ -657,7 +663,8 @@ function leadsOnThisSite(to: string): boolean {
  * The only place a result turns into an action. Resolves false when it refuses: a link off this site
  * or that can't be read, or a workspace launch whose required group is no longer open for that
  * patient, or whose workspace, window or group props name another patient than that group's or,
- * inside a chart, the chart's. True otherwise. A launch that fails rejects.
+ * inside a chart, the chart's, or a modal whose props name another patient than the chart's. True
+ * otherwise. A launch that fails rejects.
  */
 export async function executeTarget(
   target: OmnibarTarget,
@@ -708,6 +715,14 @@ export async function executeTarget(
         target.windowProps ?? null,
         target.groupProps ?? null,
       );
+      return true;
+    }
+    case 'modal': {
+      // As for a workspace, props that name another patient than the chart's are refused
+      if (chartPatientUuid && targetNamesOtherPatient(target, chartPatientUuid)) {
+        return false;
+      }
+      const dispose = showModal(target.modalName, { ...target.modalProps, closeModal: () => dispose() });
       return true;
     }
   }
