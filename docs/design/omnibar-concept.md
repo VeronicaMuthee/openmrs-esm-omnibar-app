@@ -28,7 +28,7 @@ The shell does the shared, hard parts; providers only describe what they found. 
 
 &#91;embedded content: omnibar architecture · 4 providers, 1 shell\]
 
-Providers receive the query and scope and send back reports; only the shell turns a chosen result into navigation or a workspace.
+Providers receive the query and scope and send back reports; only the shell turns a chosen result into navigation, a workspace or a confirming dialog.
 
 - **Providers are extensions.** A provider sits in `omnibar-providers-slot`, renders nothing, and calls `report()`. It can use SWR and its app's existing hooks, so patient search reuses the same REST call it already makes.
 - **Lanes instead of a merged ranking.** Results group into `record`, `navigate` and `answer` lanes, then by each provider's declared order. Scores from different providers aren't comparable, so the shell doesn't pretend they are.
@@ -88,7 +88,8 @@ interface OmnibarContext { scope: OmnibarScope; patientUuid?: string; locale: st
 
 type OmnibarTarget =
   | { type: 'navigate'; to: string }
-  | { type: 'workspace'; workspaceName: string; workspaceProps?: object; windowProps?: object; groupProps?: object };
+  | { type: 'workspace'; workspaceName: string; workspaceProps?: object; windowProps?: object; groupProps?: object }
+  | { type: 'modal'; modalName: string; modalProps?: object };
 
 interface OmnibarResult {
   id: string;
