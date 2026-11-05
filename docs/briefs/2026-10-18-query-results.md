@@ -19,7 +19,7 @@ Paul reviewed the plan with the agent before it started. The brief below is kept
   - It says when the interaction list is cut short, flags a drug class the reference couldn't match, and says when no condition rules were available to screen.
   - The disclaimer is always shown.
 - Reasoning and preview events aren't shown.
-- An answer with no sources is hidden with a note (design rule 5).
+- An answer with no sources is shown with the note "Cites no records. Check the chart." (design rule 5, changed after [chartsearchai#87](https://github.com/openmrs/openmrs-esm-chartsearchai/pull/87)). Its safety findings still show.
 - When ChartSearch reports an error, the view shows only its own wording, never ChartSearch's message. A server it can't reach shows as "Unavailable right now".
 - The request stops when the query or patient changes, or the page closes.
 - Answers are never stored. History keeps only the question text.
