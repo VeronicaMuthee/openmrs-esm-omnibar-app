@@ -1771,6 +1771,7 @@ Both confirmed the default highlight, the drawing of rows and opening now agree 
 Not fixed, and why:
 
 - A workspace whose `patientUuid` isn't a string still launches. That's existing behaviour, pinned by tests that say so; dialogs don't have it. A candidate for its own ticket.
+- With the bar widened on a chart, a workspace is still checked only against its own `requiresOpenGroup`, not against the chart on the page, as before this change. So a global provider's workspace row naming another patient, without `requiresOpenGroup`, can be the default, and Enter launches it onto that chart's side panel; the framework's `launchWorkspace2` asks first only when something open has unsaved changes. The reason this change checks a dialog against the page's chart applies to workspaces too. Raised by Daniel in review; left as a follow-up, so this change doesn't alter how workspaces launch.
 - Only a top-level `patientUuid` is checked, as for workspaces; other keys such as `patient` or `visit` aren't. Documented in the contract.
 - Functions nested inside `modalProps` aren't walked. No chart dialog reads one. Documented.
 - A provider can't tell whether the host opens dialogs, so on an older host the row simply doesn't show. A capability signal would be a contract addition; left for Paul. Documented.
