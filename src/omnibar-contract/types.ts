@@ -8,8 +8,9 @@
  * translations from the framework, and can use the same SWR hooks as the rest of their app.
  *
  * Providers describe results; the omnibar acts on them. A result can only point at a destination
- * (a URL or a workspace). There is deliberately no `onSelect` callback, so nothing in the bar
- * can write to the record directly: anything that changes data opens a form or workspace first.
+ * (a URL or a workspace) or, new in v1, a dialog that confirms an action (a modal). There is
+ * deliberately no `onSelect` callback, so nothing in the bar can write to the record directly:
+ * anything that changes data opens a form, workspace or confirming dialog first.
  */
 
 /**
@@ -198,6 +199,10 @@ export interface OmnibarPatient {
   identifiers?: Array<{ identifier: string; typeUuid?: string; typeName?: string }>;
 }
 
+/**
+ * A record the answer drew on, opened as a page or a workspace. A dialog is an action, not a record,
+ * so the host drops a source whose target is a modal.
+ */
 export interface OmnibarSource {
   label: string;
   target: OmnibarTarget;

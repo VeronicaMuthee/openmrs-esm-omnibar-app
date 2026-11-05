@@ -421,6 +421,22 @@ describe('modal targets in reports', () => {
   it('drops a modal result without a modal name', () => {
     expect(withTarget({ type: 'modal', modalProps: {} }).results).toEqual([]);
   });
+
+  it('drops an answer source that opens a dialog, which isn’t a record, and keeps one that opens a page', () => {
+    const answerWith = (sources: Array<unknown>) =>
+      cleanReport({
+        query: 'q',
+        title: 'T',
+        status: 'ready',
+        answer: { text: 'An answer', streaming: false, sources },
+      } as never).answer.sources;
+    const dialog = { label: 'End visit', target: { type: 'modal', modalName: 'end-visit-dialog' } };
+    const page = { label: 'Visit note', target: { type: 'navigate', to: '/visit-note' } };
+
+    expect(answerWith([dialog, page])).toEqual([page]);
+    // With only a dialog, the answer cites nothing, so the bar hides it as it does on main
+    expect(answerWith([dialog])).toEqual([]);
+  });
 });
 
 describe('DestinationsProvider', () => {
@@ -864,6 +880,33 @@ describe('Omnibar with providers mounted through the slot', () => {
             'The side panel was closed or opened for another patient. Open it again on this chart, then search again.',
         }),
       );
+    });
+
+    it('warns in a snackbar and opens nothing when a dialog names another patient than the chart’s', async () => {
+      const user = userEvent.setup();
+      window.history.pushState({}, '', '/openmrs/spa/patient/8673ee4f-e2ab-4077-ba55-4980f408773e/chart/Results');
+      const otherPatient = { patientUuid: '0c1d2e3f-4a5b-4c6d-8e7f-901234567890' };
+      mountProviders([
+        {
+          name: 'rows',
+          meta: recordLane,
+          component: offersRow({ type: 'modal', modalName: 'end-visit-dialog', modalProps: otherPatient }),
+        },
+      ]);
+      render(<Omnibar />);
+
+      await user.type(screen.getByRole('combobox'), 'row');
+      await user.click(screen.getByRole('option', { name: 'The row' }));
+
+      await waitFor(() =>
+        expect(showSnackbar).toHaveBeenCalledWith({
+          kind: 'warning',
+          title: 'Couldn’t open that dialog',
+          subtitle: 'It was for another patient than this chart’s.',
+        }),
+      );
+      expect(showModal).not.toHaveBeenCalled();
+      window.history.pushState({}, '', '/');
     });
   });
 

@@ -237,7 +237,11 @@ export function cleanReport(report: unknown): OmnibarReport | null {
             ? answer.sources
                 .filter(
                   (source): source is OmnibarSource =>
-                    isObject(source) && typeof source.label === 'string' && isKnownTarget(source.target),
+                    isObject(source) &&
+                    typeof source.label === 'string' &&
+                    isKnownTarget(source.target) &&
+                    // A source is a record the answer drew on. A dialog is an action, not a record.
+                    source.target.type !== 'modal',
                 )
                 .map((source) => ({ label: plainText(source.label), target: copyTarget(source.target) }))
             : [],
@@ -616,8 +620,8 @@ export function speaksContractOf(extensionName: string, meta: Pick<OmnibarProvid
 /**
  * The patients a target names. A link names one by an id (a UUID, or its 32 hex digits) in the
  * `/patient/<id>/` position of its path, each segment decoded as the router decodes it, or after
- * `patient/` in its query string or hash. A workspace names one by a string `patientUuid` in any of
- * its props, decoded the same way. Null for a link that can't be read, or that still holds a `${`
+ * `patient/` in its query string or hash. A workspace or a modal names one by a string `patientUuid`
+ * in any of its props, decoded the same way. Null for a link that can't be read, or that still holds a `${`
  * placeholder after interpolation: it names no one this host can vouch for.
  */
 function patientsNamedBy(target: OmnibarTarget): Array<string> | null {
