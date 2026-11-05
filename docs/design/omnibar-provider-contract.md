@@ -11,14 +11,14 @@ Any O3 app can add rows to the omnibar by registering one extension, a **provide
 - An ordinary extension that renders `null`. The framework gives it lazy loading, privileges, feature flags, display expressions, config and translations, as for any extension.
 - The host mounts it only while the bar is open, only in the scopes its `meta` declares, and only on a contract the host speaks.
 - It receives [props](#props) and calls `report()` with what it found, on every query, including `status: 'idle'` when it has nothing to say.
-- Results describe destinations. There is no `onSelect`, so nothing in the bar writes to the record. Anything that changes data opens a page or a workspace first.
+- Results describe destinations. There is no `onSelect`, so nothing in the bar writes to the record. Anything that changes data opens a page, a workspace or a confirming dialog first.
 - A provider must not read the URL to find the patient. Use `context.patientUuid`.
 
 ## What the host guards against
 
-Providers are installed frontend modules: trusted code. Any of them could call `navigate()` or `launchWorkspace2` itself, and nothing in the host can stop that. The host's guards are there for a provider's **mistakes**, so that one doesn't send a clinician to the wrong patient, show stale data, or break the bar:
+Providers are installed frontend modules: trusted code. Any of them could call `navigate()`, `launchWorkspace2` or `showModal` itself, and nothing in the host can stop that. The host's guards are there for a provider's **mistakes**, so that one doesn't send a clinician to the wrong patient, show stale data, or break the bar:
 
-- **Wrong patient.** Inside a chart, a result whose target names another patient is never the default highlight, even from a provider with `defaultInChart`, and never the copy dedupe keeps while a copy for this patient exists. The one exception is the host's own patient search, for an ID-shaped query, when it finds exactly one patient holding that identifier ([the default highlight](#the-default-highlight)). Apart from that, only the user picking such a row selects it, and a highlight never moves onto one from another row by itself, even from a row the user arrowed to. A workspace launch whose props name another patient is refused. What the host recognizes as naming a patient:
+- **Wrong patient.** Inside a chart, a result whose target names another patient is never the default highlight, even from a provider with `defaultInChart`, and never the copy dedupe keeps while a copy for this patient exists. The one exception is the host's own patient search, for an ID-shaped query, when it finds exactly one patient holding that identifier ([the default highlight](#the-default-highlight)). Apart from that, only the user picking such a row selects it, and a highlight never moves onto one from another row by itself, even from a row the user arrowed to. A workspace launch whose props name another patient is refused, and so, inside a chart, is a dialog whose props name another patient than the chart's. What the host recognizes as naming a patient:
   - in a link, an id in the path segment after `patient`, as in `/patient/<id>/chart`, with each segment percent-decoded as the router decodes it (a segment whose decoding would make a `/` is read as written);
   - in a link, an id after `patient/` in the query string or hash, once decoded, as in `?next=%2Fpatient%2F<id>%2Fchart`;
   - an id is a UUID (8-4-4-4-12 hex digits, any case) or the same 32 hex digits without hyphens. Ids compare without regard to case, so the 32-digit form of the chart's own UUID counts as another patient;
@@ -135,7 +135,7 @@ Both functions are in the contract folder too, for providers and views on older 
 | `status` | `'idle' \| 'loading' \| 'ready' \| 'error'` | `idle` hides the group. `loading` with no results shows "Searching". `ready` with no results hides the group, unless `detail.state` is `projecting`. `error` shows "Couldn't load results", never the server's message |
 | `title` | `string` | The group heading, translated in the provider's own namespace. A report without a text `title` is ignored |
 | `results` | `Array<OmnibarResult>` | Record and navigate lanes. The host reads the first 200, dedupes them, then shows the first 50 of each group. A report whose `results` isn't a list is ignored |
-| `answer` | `OmnibarAnswer` | Answer lane only: `{ text, streaming, sources }`. A finished answer with no sources is hidden, and missing `sources` count as none |
+| `answer` | `OmnibarAnswer` | Answer lane only: `{ text, streaming, sources }`. A finished answer with no sources is hidden, and missing `sources` count as none. A source is a record, opened as a page or a workspace: one whose target is a `modal` is dropped, since a dialog is an action, not a record |
 | `detail` | `{ state, note? }` | *New in v1.* The state of the source behind the results. See below |
 | `completions` | `Array<OmnibarCompletion>` | *New in v1.* Up to 5 completions (the host keeps at most 5, in order, and ignores the rest). See below |
 

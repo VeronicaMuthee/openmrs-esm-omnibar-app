@@ -326,6 +326,11 @@ Paul's decisions for counting patients by numeric test results; the plan is [the
 **The `/lab` command's label is Chart values.** The command searches recorded observations, including vitals such as weight, so its label should cover more than laboratory results. The command id remains `lab`, and the existing aliases (`lab`, `labs`, `results`, `obs`, `value`) stay the same. This replaces the built-in label recorded above.
 *Why:* requested after reviewing the pill shown for a weight query.
 
+## 2026-11-05
+
+**A result may open a dialog that confirms an action (Veronica, proposed in [#46](https://github.com/openmrs/openmrs-esm-omnibar-app/pull/46); awaiting Paul).** `OmnibarTarget` gains `{ type: 'modal', modalName, modalProps? }`, which the host opens with `showModal`, adding `closeModal`. Design rule 1 now names three destinations, a URL, a workspace launch and a confirming dialog, and keeps its substance: there is still no `onSelect`, and anything that changes data opens the app's own form, workspace or dialog, where the clinician confirms. As for a workspace, inside a chart a dialog whose `modalProps` name another patient than the chart's is refused. A dialog never counts as an answer's source, since it is an action, not a record. The target is optional, so the contract stays at version 1, and an older host drops such a result.
+*Why:* the patient chart's `/visit` command offers "End active visit", and the chart confirms that in its own `end-visit-dialog`. Without a dialog target, a provider would have to copy that confirmation into a side panel that looks and behaves differently from the banner's. Other confirmations the chart already makes in dialogs could use it too.
+
 ## Open
 
 These came up but aren't decided yet.
