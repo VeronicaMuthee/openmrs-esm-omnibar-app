@@ -18,7 +18,7 @@
   "date": "Date",
   "deceased": "Deceased",
   "dialogNotOpened": "Couldn’t open that dialog",
-  "dialogNotOpenedSubtitle": "It was for another patient than this chart’s.",
+  "dialogNotOpenedSubtitle": "It wasn’t for the patient whose chart is open.",
   "earlierQueries": "Earlier this session",
   "enterToAskModel": "Enter to ask {{model}} “{{query}}”",
   "enterToSeeAll": "Enter to see all results for “{{query}}”",

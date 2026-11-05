@@ -481,8 +481,9 @@ const Omnibar: React.FC = () => {
   const containerRef = useOnClickOutside<HTMLDivElement>(closeBar, open && desktop);
 
   // A workspace whose chart group closed, or opened for another patient, after its row was drawn is
-  // refused, as is a workspace or modal whose props name another patient than the chart's, and a link
-  // off this site. A launch can also fail. The bar has closed by then, so a snackbar says nothing opened.
+  // refused, as is a workspace whose props name another patient than the chart's, a dialog that isn't
+  // for the chart open on the page, and a link off this site. A launch can also fail. The bar has closed
+  // by then, so a snackbar says nothing opened.
   const runTarget = useCallback(
     (target: OmnibarTarget) => {
       const warn = () =>
@@ -497,7 +498,7 @@ const Omnibar: React.FC = () => {
               ? {
                   kind: 'warning',
                   title: t('dialogNotOpened', 'Couldn’t open that dialog'),
-                  subtitle: t('dialogNotOpenedSubtitle', 'It was for another patient than this chart’s.'),
+                  subtitle: t('dialogNotOpenedSubtitle', 'It wasn’t for the patient whose chart is open.'),
                 }
               : {
                   kind: 'warning',
@@ -508,9 +509,13 @@ const Omnibar: React.FC = () => {
                   ),
                 },
         );
-      executeTarget(target, scopePatientUuid).then((opened) => opened || warn(), warn);
+      // A dialog draws over the page, so it's checked against the chart there even with the bar widened
+      executeTarget(target, target.type === 'modal' ? chartPatientUuid : scopePatientUuid).then(
+        (opened) => opened || warn(),
+        warn,
+      );
     },
-    [t, scopePatientUuid],
+    [t, scopePatientUuid, chartPatientUuid],
   );
 
   // The results on screen may still be for an earlier query, e.g. recents while a scanner types an

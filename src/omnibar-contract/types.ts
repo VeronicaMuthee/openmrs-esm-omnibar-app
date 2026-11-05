@@ -160,8 +160,11 @@ export type OmnibarTarget =
       /** A modal registered in an app's `routes.json` `modals`, opened with `showModal`. */
       modalName: string;
       /**
-       * The modal's props. The host adds `closeModal`. As for a workspace, inside a chart the modal is
-       * refused when a string `patientUuid` in them names another patient than the chart's.
+       * The modal's props, as data: the host drops any function in them, so the registered dialog does
+       * what it confirms, and adds `closeModal`. The dialog draws over the chart, so the host opens it
+       * only on a patient's chart, whatever the bar's scope, and only when a string `patientUuid` here
+       * names that chart's patient. Name only a dialog that asks before it changes anything: the host
+       * can't check that. A result with this target has no `dedupeId`, since a dialog isn't a record.
        */
       modalProps?: object;
     };
@@ -205,7 +208,7 @@ export interface OmnibarPatient {
  */
 export interface OmnibarSource {
   label: string;
-  target: OmnibarTarget;
+  target: Exclude<OmnibarTarget, { type: 'modal' }>;
 }
 
 export interface OmnibarAnswer {

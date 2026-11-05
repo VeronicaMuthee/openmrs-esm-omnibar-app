@@ -126,15 +126,25 @@ export function targetSignature(target: OmnibarTarget): string | undefined {
 const copyOf = (props: unknown) => (isObject(props) ? { ...props } : undefined);
 
 /**
+ * A dialog's props without their functions. The dialog the app registered does what it confirms;
+ * a callback in the props would run the provider's own code instead, and the framework's `close`
+ * isn't the provider's to replace.
+ */
+const dataOnly = (props: unknown) =>
+  isObject(props)
+    ? Object.fromEntries(Object.entries(props).filter(([, value]) => typeof value !== 'function'))
+    : undefined;
+
+/**
  * The bar's own copy of a target, so a provider changing its object after reporting it changes
- * nothing on screen or on Enter. Its props are copied one level deep.
+ * nothing on screen or on Enter. Its props are copied one level deep, a dialog's without functions.
  */
 function copyTarget(target: OmnibarTarget): OmnibarTarget {
   if (target.type === 'navigate') {
     return { type: 'navigate', to: target.to };
   }
   if (target.type === 'modal') {
-    return { type: 'modal', modalName: target.modalName, modalProps: copyOf(target.modalProps) };
+    return { type: 'modal', modalName: target.modalName, modalProps: dataOnly(target.modalProps) };
   }
   const required: unknown = target.requiresOpenGroup;
   return {
@@ -198,7 +208,8 @@ function cleanResult(result: unknown): OmnibarResult | null {
     subtitle: plainTextOrNothing(result.subtitle),
     patient: cleanPatient(result.patient),
     target: copyTarget(result.target),
-    dedupeId: textOrNothing(result.dedupeId),
+    // A dialog is an action, not a record, so it never stands in for a record's row in dedupe
+    dedupeId: result.target.type === 'modal' ? undefined : textOrNothing(result.dedupeId),
   };
 }
 
@@ -243,7 +254,10 @@ export function cleanReport(report: unknown): OmnibarReport | null {
                     // A source is a record the answer drew on. A dialog is an action, not a record.
                     source.target.type !== 'modal',
                 )
-                .map((source) => ({ label: plainText(source.label), target: copyTarget(source.target) }))
+                .map((source) => ({
+                  label: plainText(source.label),
+                  target: copyTarget(source.target) as OmnibarSource['target'],
+                }))
             : [],
         }
       : undefined,
@@ -621,8 +635,9 @@ export function speaksContractOf(extensionName: string, meta: Pick<OmnibarProvid
  * The patients a target names. A link names one by an id (a UUID, or its 32 hex digits) in the
  * `/patient/<id>/` position of its path, each segment decoded as the router decodes it, or after
  * `patient/` in its query string or hash. A workspace or a modal names one by a string `patientUuid`
- * in any of its props, decoded the same way. Null for a link that can't be read, or that still holds a `${`
- * placeholder after interpolation: it names no one this host can vouch for.
+ * in any of its props, decoded the same way; any other `patientUuid`, such as an array, names no one.
+ * Null for a link that can't be read, or that still holds a `${` placeholder after interpolation: it
+ * names no one this host can vouch for.
  */
 function patientsNamedBy(target: OmnibarTarget): Array<string> | null {
   if (target.type === 'navigate') {
@@ -646,10 +661,16 @@ function patientsNamedBy(target: OmnibarTarget): Array<string> | null {
     .map(decodeSegment);
 }
 
-/** True when the target names a patient other than the chart's, or can't be read. */
+/**
+ * True when the target names a patient other than the chart's, or can't be read. A dialog draws over
+ * the chart without saying whose it is, so one that names no patient counts as another patient's.
+ */
 export function targetNamesOtherPatient(target: OmnibarTarget, chartPatientUuid: string): boolean {
   const named = patientsNamedBy(target);
-  return named === null || named.some((uuid) => uuid.toLowerCase() !== chartPatientUuid.toLowerCase());
+  if (named === null || (target.type === 'modal' && named.length === 0)) {
+    return true;
+  }
+  return named.some((uuid) => uuid.toLowerCase() !== chartPatientUuid.toLowerCase());
 }
 
 const isOnThisSite = (url: URL) => url.origin === window.location.origin && !url.username && !url.password;
@@ -667,12 +688,16 @@ function leadsOnThisSite(to: string): boolean {
  * The only place a result turns into an action. Resolves false when it refuses: a link off this site
  * or that can't be read, or a workspace launch whose required group is no longer open for that
  * patient, or whose workspace, window or group props name another patient than that group's or,
- * inside a chart, the chart's, or a modal whose props name another patient than the chart's. True
- * otherwise. A launch that fails rejects.
+ * inside a chart, the chart's, or a modal opened off a chart or whose props don't name the chart's
+ * patient. True otherwise. A workspace launch that fails rejects. A modal whose name isn't registered
+ * still resolves true: the framework reports that itself, in its own error toast.
  */
 export async function executeTarget(
   target: OmnibarTarget,
-  /** The chart's patient, in patient scope only. */
+  /**
+   * The chart's patient. For a workspace, pass it in patient scope only. For a modal, pass the chart
+   * open on the page whatever the bar's scope, since the dialog draws over that chart.
+   */
   chartPatientUuid?: string,
 ): Promise<boolean> {
   switch (target.type) {
@@ -722,8 +747,8 @@ export async function executeTarget(
       return true;
     }
     case 'modal': {
-      // As for a workspace, props that name another patient than the chart's are refused
-      if (chartPatientUuid && targetNamesOtherPatient(target, chartPatientUuid)) {
+      // A dialog opens only over a chart, and only when its props name that chart's patient
+      if (!chartPatientUuid || targetNamesOtherPatient(target, chartPatientUuid)) {
         return false;
       }
       const dispose = showModal(target.modalName, { ...target.modalProps, closeModal: () => dispose() });
