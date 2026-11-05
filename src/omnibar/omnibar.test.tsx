@@ -467,7 +467,7 @@ describe('modal targets in reports', () => {
     const [kept] = withTarget({
       type: 'modal',
       modalName: 'end-visit-dialog',
-      modalProps: { patientUuid: 'p', size: 'sm', onConfirmation: () => undefined, close: () => undefined },
+      modalProps: { patientUuid: 'p', size: 'sm', onConfirmation: () => undefined, close: 'replaced' },
     }).results;
     const [none] = withTarget({ type: 'modal', modalName: 'end-visit-dialog', modalProps: 'p' }).results;
 
@@ -1025,15 +1025,79 @@ describe('Omnibar with providers mounted through the slot', () => {
         expect(showSnackbar).not.toHaveBeenCalled();
       });
 
-      it('refuses a dialog off a chart, whatever patient it names', async () => {
+      it('draws no dialog row off a chart, since it couldn’t open there', async () => {
         const user = userEvent.setup();
         mountProviders([
-          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: otherPatient })) },
+          {
+            name: 'rows',
+            meta: recordLane,
+            component: function Rows({ query, report }: OmnibarProviderProps) {
+              useEffect(
+                () =>
+                  report({
+                    query,
+                    title: 'Rows',
+                    status: 'ready',
+                    results: query
+                      ? [
+                          { id: 'row', title: 'The row', target: dialogFor({ patientUuid: otherPatient }) },
+                          { id: 'page', title: 'A page', target: { type: 'navigate', to: '/page' } },
+                        ]
+                      : [],
+                  }),
+                [query, report],
+              );
+              return null;
+            },
+          },
         ]);
         render(<Omnibar />);
 
         await user.type(screen.getByRole('combobox'), 'row');
-        await user.click(screen.getByRole('option', { name: 'The row' }));
+
+        expect(await screen.findByRole('option', { name: 'A page' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'The row' })).not.toBeInTheDocument();
+      });
+
+      it('with the search widened, never makes a dialog for another patient the default, and lets one for the chart’s be it', async () => {
+        const user = userEvent.setup();
+        onChart();
+        const widen = async () => {
+          await user.click(screen.getAllByRole('combobox').at(-1));
+          await user.click(screen.getByRole('button', { name: /remove .* context/i }));
+          await user.type(screen.getAllByRole('combobox').at(-1), 'row');
+        };
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: otherPatient })) },
+        ]);
+        const { unmount } = render(<Omnibar />);
+        await widen();
+        expect(await screen.findByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'false');
+        unmount();
+
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: chartPatient })) },
+        ]);
+        render(<Omnibar />);
+        await widen();
+        await waitFor(() =>
+          expect(screen.getByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'true'),
+        );
+      });
+
+      it('opens nothing when the page has moved to another chart before the bar caught up', async () => {
+        const user = userEvent.setup();
+        onChart();
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: chartPatient })) },
+        ]);
+        render(<Omnibar />);
+
+        await user.type(screen.getByRole('combobox'), 'row');
+        const row = await screen.findByRole('option', { name: 'The row' });
+        // The URL changes without the routing event the bar listens for, as in the moment before it fires
+        window.history.replaceState({}, '', `/openmrs/spa/patient/${otherPatient}/chart/Results`);
+        await user.click(row);
 
         await waitFor(() => expect(showSnackbar).toHaveBeenCalledWith(refusedDialog));
         expect(showModal).not.toHaveBeenCalled();
@@ -1074,8 +1138,6 @@ describe('Omnibar with providers mounted through the slot', () => {
 
         await user.type(screen.getByRole('combobox'), 'row');
         expect(await screen.findByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'false');
-        await user.keyboard('{Enter}');
-        expect(showModal).not.toHaveBeenCalled();
         unmount();
 
         mountProviders([

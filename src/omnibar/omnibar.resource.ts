@@ -126,13 +126,13 @@ export function targetSignature(target: OmnibarTarget): string | undefined {
 const copyOf = (props: unknown) => (isObject(props) ? { ...props } : undefined);
 
 /**
- * A dialog's props without their functions. The dialog the app registered does what it confirms;
- * a callback in the props would run the provider's own code instead, and the framework's `close`
- * isn't the provider's to replace.
+ * A dialog's props without their top-level functions or a `close`. The dialog the app registered does
+ * what it confirms; a callback in the props would run the provider's own code instead, and the
+ * framework's `close` isn't the provider's to replace.
  */
 const dataOnly = (props: unknown) =>
   isObject(props)
-    ? Object.fromEntries(Object.entries(props).filter(([, value]) => typeof value !== 'function'))
+    ? Object.fromEntries(Object.entries(props).filter(([key, value]) => typeof value !== 'function' && key !== 'close'))
     : undefined;
 
 /**
@@ -202,14 +202,15 @@ function cleanResult(result: unknown): OmnibarResult | null {
   if (!isKnownTarget(result.target)) {
     return null;
   }
+  const target = copyTarget(result.target);
   return {
     id: result.id,
     title: plainText(result.title),
     subtitle: plainTextOrNothing(result.subtitle),
     patient: cleanPatient(result.patient),
-    target: copyTarget(result.target),
+    target,
     // A dialog is an action, not a record, so it never stands in for a record's row in dedupe
-    dedupeId: result.target.type === 'modal' ? undefined : textOrNothing(result.dedupeId),
+    dedupeId: target.type === 'modal' ? undefined : textOrNothing(result.dedupeId),
   };
 }
 
@@ -466,6 +467,11 @@ export function useResultCollector(
   contextKey = '',
   /** The chart's patient, in patient scope only. A result that names another one is never the default. */
   chartPatientUuid?: string,
+  /**
+   * The chart open on the page, whatever the bar's scope. A dialog draws over it, so dialog rows are
+   * judged against it, and aren't drawn at all when no chart is open, since they couldn't open.
+   */
+  pageChartPatientUuid?: string,
 ) {
   const [reports, setReports] = useState<Record<string, OmnibarReport>>({});
   const queryRef = useRef(query);
@@ -520,17 +526,24 @@ export function useResultCollector(
         .filter(([providerId, report]) => report.query === query && providerInfo[providerId])
         .map(([providerId, report]) => ({
           ...report,
-          results: isCollapsed(report) ? [] : report.results,
+          results: isCollapsed(report)
+            ? []
+            : report.results?.filter((result) => result.target.type !== 'modal' || Boolean(pageChartPatientUuid)),
           providerId,
           ...providerInfo[providerId],
         }))
         .sort((a, b) => laneRank[a.lane] - laneRank[b.lane] || a.order - b.order),
-    [reports, query, providerInfo],
+    [reports, query, providerInfo, pageChartPatientUuid],
   );
 
+  // A dialog row is judged against the chart on the page, as opening it is; any other row against the
+  // scope's chart
   const namesOtherPatient = useCallback(
-    (result: OmnibarResult) => Boolean(chartPatientUuid) && targetNamesOtherPatient(result.target, chartPatientUuid),
-    [chartPatientUuid],
+    (result: OmnibarResult) =>
+      result.target.type === 'modal'
+        ? !pageChartPatientUuid || targetNamesOtherPatient(result.target, pageChartPatientUuid)
+        : Boolean(chartPatientUuid) && targetNamesOtherPatient(result.target, chartPatientUuid),
+    [chartPatientUuid, pageChartPatientUuid],
   );
   // Dedupe picks its keepers from every row read, so a chart's own copy past the first 50 still keeps
   // its record from another provider. Only then is each group cut to the 50 it shows.

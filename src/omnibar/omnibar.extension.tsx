@@ -40,7 +40,7 @@ import {
   useCommandTable,
 } from './commands';
 import { PatientRow } from './patient-row';
-import { useOmnibarContext } from './use-omnibar-context';
+import { getPatientUuidFromPath, useOmnibarContext } from './use-omnibar-context';
 import { useOpenedWorkspaceGroup } from './workspace-group';
 import { type OmnibarConfig } from '../config-schema';
 import {
@@ -237,6 +237,7 @@ const Omnibar: React.FC = () => {
     providerInfo,
     `${contextKey}:${open ? 'open' : 'closed'}`,
     scopePatientUuid,
+    chartPatientUuid,
   );
 
   // Completions: track per-query dismissal (Escape). A new debouncedQuery un-dismisses automatically
@@ -509,8 +510,11 @@ const Omnibar: React.FC = () => {
                   ),
                 },
         );
-      // A dialog draws over the page, so it's checked against the chart there even with the bar widened
-      executeTarget(target, target.type === 'modal' ? chartPatientUuid : scopePatientUuid).then(
+      // A dialog draws over the page, so it's checked against the chart there even with the bar widened.
+      // The URL is read again now: if the page has moved on before the bar has caught up, nothing opens.
+      const livePatientUuid = getPatientUuidFromPath(window.location.pathname);
+      const pagePatientUuid = livePatientUuid === chartPatientUuid ? livePatientUuid : undefined;
+      executeTarget(target, target.type === 'modal' ? pagePatientUuid : scopePatientUuid).then(
         (opened) => opened || warn(),
         warn,
       );

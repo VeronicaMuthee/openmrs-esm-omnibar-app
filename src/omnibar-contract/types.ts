@@ -160,11 +160,12 @@ export type OmnibarTarget =
       /** A modal registered in an app's `routes.json` `modals`, opened with `showModal`. */
       modalName: string;
       /**
-       * The modal's props, as data: the host drops any function in them, so the registered dialog does
-       * what it confirms, and adds `closeModal`. The dialog draws over the chart, so the host opens it
-       * only on a patient's chart, whatever the bar's scope, and only when a string `patientUuid` here
-       * names that chart's patient. Name only a dialog that asks before it changes anything: the host
-       * can't check that. A result with this target has no `dedupeId`, since a dialog isn't a record.
+       * The modal's props, as data: the host drops their top-level functions and any `close`, so the
+       * registered dialog does what it confirms, and adds `closeModal`. The dialog draws over the
+       * chart, so the host opens it only on a patient's chart, whatever the bar's scope, and only when
+       * a string `patientUuid` here names that chart's patient; off a chart its row isn't drawn. Name
+       * only a dialog that asks before it changes anything: the host can't check that. A result with
+       * this target has no `dedupeId`, since a dialog isn't a record.
        */
       modalProps?: object;
     };
