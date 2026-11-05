@@ -8,8 +8,9 @@
  * translations from the framework, and can use the same SWR hooks as the rest of their app.
  *
  * Providers describe results; the omnibar acts on them. A result can only point at a destination
- * (a URL or a workspace). There is deliberately no `onSelect` callback, so nothing in the bar
- * can write to the record directly: anything that changes data opens a form or workspace first.
+ * (a URL or a workspace) or, new in v1, a dialog that confirms an action (a modal). There is
+ * deliberately no `onSelect` callback, so nothing in the bar can write to the record directly:
+ * anything that changes data opens a form, workspace or confirming dialog first.
  */
 
 /**
@@ -152,6 +153,21 @@ export type OmnibarTarget =
         workspaceName: string;
         patientUuid: string;
       };
+    }
+  | {
+      /** New in v1. Older hosts drop a result with this target. */
+      type: 'modal';
+      /** A modal registered in an app's `routes.json` `modals`, opened with `showModal`. */
+      modalName: string;
+      /**
+       * The modal's props, as data: the host drops their top-level functions and any `close`, so the
+       * registered dialog does what it confirms, and adds `closeModal`. The dialog draws over the
+       * chart, so the host opens it only on a patient's chart, whatever the bar's scope, and only when
+       * a string `patientUuid` here names that chart's patient; off a chart its row isn't drawn. Name
+       * only a dialog that asks before it changes anything: the host can't check that. A result with
+       * this target has no `dedupeId`, since a dialog isn't a record.
+       */
+      modalProps?: object;
     };
 
 /**
@@ -187,9 +203,13 @@ export interface OmnibarPatient {
   identifiers?: Array<{ identifier: string; typeUuid?: string; typeName?: string }>;
 }
 
+/**
+ * A record the answer drew on, opened as a page or a workspace. A dialog is an action, not a record,
+ * so the host drops a source whose target is a modal.
+ */
 export interface OmnibarSource {
   label: string;
-  target: OmnibarTarget;
+  target: Exclude<OmnibarTarget, { type: 'modal' }>;
 }
 
 export interface OmnibarAnswer {

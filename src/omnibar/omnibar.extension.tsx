@@ -40,7 +40,7 @@ import {
   useCommandTable,
 } from './commands';
 import { PatientRow } from './patient-row';
-import { useOmnibarContext } from './use-omnibar-context';
+import { getPatientUuidFromPath, useOmnibarContext } from './use-omnibar-context';
 import { useOpenedWorkspaceGroup } from './workspace-group';
 import { type OmnibarConfig } from '../config-schema';
 import {
@@ -237,6 +237,7 @@ const Omnibar: React.FC = () => {
     providerInfo,
     `${contextKey}:${open ? 'open' : 'closed'}`,
     scopePatientUuid,
+    chartPatientUuid,
   );
 
   // Completions: track per-query dismissal (Escape). A new debouncedQuery un-dismisses automatically
@@ -481,8 +482,9 @@ const Omnibar: React.FC = () => {
   const containerRef = useOnClickOutside<HTMLDivElement>(closeBar, open && desktop);
 
   // A workspace whose chart group closed, or opened for another patient, after its row was drawn is
-  // refused, as is one whose props name another patient than the chart's, and a link off this site.
-  // A launch can also fail. The bar has closed by then, so a snackbar says nothing opened.
+  // refused, as is a workspace whose props name another patient than the chart's, a dialog that isn't
+  // for the chart open on the page, and a link off this site. A launch can also fail. The bar has closed
+  // by then, so a snackbar says nothing opened.
   const runTarget = useCallback(
     (target: OmnibarTarget) => {
       const warn = () =>
@@ -493,18 +495,31 @@ const Omnibar: React.FC = () => {
                 title: t('resultNotOpened', 'Couldn’t open that result'),
                 subtitle: t('resultNotOpenedSubtitle', 'It links to a page outside this site.'),
               }
-            : {
-                kind: 'warning',
-                title: t('sidePanelNotOpened', 'Couldn’t open the side panel'),
-                subtitle: t(
-                  'sidePanelNotOpenedSubtitle',
-                  'The side panel was closed or opened for another patient. Open it again on this chart, then search again.',
-                ),
-              },
+            : target.type === 'modal'
+              ? {
+                  kind: 'warning',
+                  title: t('dialogNotOpened', 'Couldn’t open that dialog'),
+                  subtitle: t('dialogNotOpenedSubtitle', 'It wasn’t for the patient whose chart is open.'),
+                }
+              : {
+                  kind: 'warning',
+                  title: t('sidePanelNotOpened', 'Couldn’t open the side panel'),
+                  subtitle: t(
+                    'sidePanelNotOpenedSubtitle',
+                    'The side panel was closed or opened for another patient. Open it again on this chart, then search again.',
+                  ),
+                },
         );
-      executeTarget(target, scopePatientUuid).then((opened) => opened || warn(), warn);
+      // A dialog draws over the page, so it's checked against the chart there even with the bar widened.
+      // The URL is read again now: if the page has moved on before the bar has caught up, nothing opens.
+      const livePatientUuid = getPatientUuidFromPath(window.location.pathname);
+      const pagePatientUuid = livePatientUuid === chartPatientUuid ? livePatientUuid : undefined;
+      executeTarget(target, target.type === 'modal' ? pagePatientUuid : scopePatientUuid).then(
+        (opened) => opened || warn(),
+        warn,
+      );
     },
-    [t, scopePatientUuid],
+    [t, scopePatientUuid, chartPatientUuid],
   );
 
   // The results on screen may still be for an earlier query, e.g. recents while a scanner types an

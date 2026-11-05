@@ -15,6 +15,7 @@ import {
   navigate,
   openmrsFetch,
   PatientPhoto,
+  showModal,
   showSnackbar,
   showToast,
   useAssignedExtensions,
@@ -342,7 +343,7 @@ describe('scope and ordering', () => {
 });
 
 describe('executeTarget', () => {
-  it('navigates or opens a workspace, and nothing else', async () => {
+  it('navigates to a link and launches a workspace as given', async () => {
     await executeTarget({ type: 'navigate', to: '${openmrsSpaBase}/home' });
     expect(navigate).toHaveBeenCalledWith({ to: '/openmrs/spa/home' });
 
@@ -369,6 +370,148 @@ describe('executeTarget', () => {
   ])('refuses to follow %s, and says so by resolving false', async (to) => {
     expect(await executeTarget({ type: 'navigate', to })).toBe(false);
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('opens a modal with its props, adding a closeModal that disposes it', async () => {
+    const dispose = vi.fn();
+    vi.mocked(showModal).mockReturnValue(dispose);
+    const chartPatient = '4d6c2b1a-0000-4000-8000-000000000001';
+
+    expect(
+      await executeTarget(
+        { type: 'modal', modalName: 'end-visit-dialog', modalProps: { patientUuid: chartPatient } },
+        chartPatient,
+      ),
+    ).toBe(true);
+    expect(showModal).toHaveBeenCalledWith('end-visit-dialog', {
+      patientUuid: chartPatient,
+      closeModal: expect.any(Function),
+    });
+    (vi.mocked(showModal).mock.calls[0][1] as { closeModal: () => void }).closeModal();
+    expect(dispose).toHaveBeenCalled();
+  });
+
+  it('refuses a modal whose props name another patient than the chart’s', async () => {
+    expect(
+      await executeTarget(
+        {
+          type: 'modal',
+          modalName: 'end-visit-dialog',
+          modalProps: { patientUuid: '4d6c2b1a-0000-4000-8000-000000000002' },
+        },
+        '4d6c2b1a-0000-4000-8000-000000000001',
+      ),
+    ).toBe(false);
+    expect(showModal).not.toHaveBeenCalled();
+  });
+
+  describe('a modal', () => {
+    const chart = '4d6c2b1a-0000-4000-8000-000000000001';
+    const modal = (modalProps: unknown) =>
+      ({ type: 'modal', modalName: 'end-visit-dialog', modalProps }) as Parameters<typeof executeTarget>[0];
+
+    it('is refused off a chart, whatever patient it names', async () => {
+      expect(await executeTarget(modal({ patientUuid: chart }))).toBe(false);
+      expect(showModal).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no props', undefined],
+      ['no patientUuid', { visitUuid: 'v' }],
+      ['the patient under another key', { patient: { uuid: chart } }],
+      ['an array', { patientUuid: [chart] }],
+      ['a String object', { patientUuid: new String(chart) }],
+      ['a number', { patientUuid: 42 }],
+      ['the chart’s 32 hex digits', { patientUuid: chart.replace(/-/g, '') }],
+    ])('is refused inside a chart when its patientUuid is %s', async (_, modalProps) => {
+      expect(await executeTarget(modal(modalProps), chart)).toBe(false);
+      expect(showModal).not.toHaveBeenCalled();
+    });
+
+    it('opens for the chart’s patient written in another case', async () => {
+      expect(await executeTarget(modal({ patientUuid: chart.toUpperCase() }), chart)).toBe(true);
+      expect(showModal).toHaveBeenCalled();
+    });
+
+    it('gets the host’s closeModal, not one in its props', async () => {
+      const dispose = vi.fn();
+      const providers = vi.fn();
+      vi.mocked(showModal).mockReturnValue(dispose);
+
+      await executeTarget(modal({ patientUuid: chart, closeModal: providers }), chart);
+      (vi.mocked(showModal).mock.calls[0][1] as { closeModal: () => void }).closeModal();
+
+      expect(dispose).toHaveBeenCalled();
+      expect(providers).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('modal targets in reports', () => {
+  const withTarget = (target: unknown) =>
+    cleanReport({ query: 'q', title: 'T', status: 'ready', results: [{ id: 'r', title: 'Row', target }] as never });
+
+  it('keeps a modal result, with its own copy of the props', () => {
+    const modalProps = { patientUuid: 'p' };
+    const [result] = withTarget({ type: 'modal', modalName: 'end-visit-dialog', modalProps }).results;
+    modalProps.patientUuid = 'changed';
+
+    expect(result.target).toEqual({ type: 'modal', modalName: 'end-visit-dialog', modalProps: { patientUuid: 'p' } });
+  });
+
+  it('drops a modal result without a modal name', () => {
+    expect(withTarget({ type: 'modal', modalProps: {} }).results).toEqual([]);
+  });
+
+  it('drops functions from a modal’s props, keeping the data, and reads props that aren’t an object as none', () => {
+    const [kept] = withTarget({
+      type: 'modal',
+      modalName: 'end-visit-dialog',
+      modalProps: { patientUuid: 'p', size: 'sm', onConfirmation: () => undefined, close: 'replaced' },
+    }).results;
+    const [none] = withTarget({ type: 'modal', modalName: 'end-visit-dialog', modalProps: 'p' }).results;
+
+    expect(kept.target).toEqual({
+      type: 'modal',
+      modalName: 'end-visit-dialog',
+      modalProps: { patientUuid: 'p', size: 'sm' },
+    });
+    expect(none.target).toEqual({ type: 'modal', modalName: 'end-visit-dialog', modalProps: undefined });
+  });
+
+  it('drops a modal result’s dedupeId, since a dialog isn’t a record, and keeps a link’s', () => {
+    const { results } = cleanReport({
+      query: 'q',
+      title: 'T',
+      status: 'ready',
+      results: [
+        {
+          id: 'end',
+          title: 'End visit',
+          dedupeId: 'visit:1',
+          target: { type: 'modal', modalName: 'end-visit-dialog' },
+        },
+        { id: 'open', title: 'Visit', dedupeId: 'visit:1', target: { type: 'navigate', to: '/visit' } },
+      ],
+    } as never);
+
+    expect(results.map(({ dedupeId }) => dedupeId)).toEqual([undefined, 'visit:1']);
+  });
+
+  it('drops an answer source that opens a dialog, which isn’t a record, and keeps one that opens a page', () => {
+    const answerWith = (sources: Array<unknown>) =>
+      cleanReport({
+        query: 'q',
+        title: 'T',
+        status: 'ready',
+        answer: { text: 'An answer', streaming: false, sources },
+      } as never).answer.sources;
+    const dialog = { label: 'End visit', target: { type: 'modal', modalName: 'end-visit-dialog' } };
+    const page = { label: 'Visit note', target: { type: 'navigate', to: '/visit-note' } };
+
+    expect(answerWith([dialog, page])).toEqual([page]);
+    // With only a dialog, the answer cites nothing, so the bar hides it as it does on main
+    expect(answerWith([dialog])).toEqual([]);
   });
 });
 
@@ -813,6 +956,238 @@ describe('Omnibar with providers mounted through the slot', () => {
             'The side panel was closed or opened for another patient. Open it again on this chart, then search again.',
         }),
       );
+    });
+
+    describe('dialogs', () => {
+      const chartPatient = '8673ee4f-e2ab-4077-ba55-4980f408773e';
+      const otherPatient = '0c1d2e3f-4a5b-4c6d-8e7f-901234567890';
+      const onChart = () => window.history.pushState({}, '', `/openmrs/spa/patient/${chartPatient}/chart/Results`);
+      const dialogFor = (modalProps: unknown): OmnibarTarget =>
+        ({ type: 'modal', modalName: 'end-visit-dialog', modalProps }) as OmnibarTarget;
+      const refusedDialog = {
+        kind: 'warning',
+        title: 'Couldn’t open that dialog',
+        subtitle: 'It wasn’t for the patient whose chart is open.',
+      };
+      afterEach(() => window.history.pushState({}, '', '/'));
+
+      it('warns in a snackbar and opens nothing when a dialog names another patient than the chart’s', async () => {
+        const user = userEvent.setup();
+        onChart();
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: otherPatient })) },
+        ]);
+        render(<Omnibar />);
+
+        await user.type(screen.getByRole('combobox'), 'row');
+        await user.click(screen.getByRole('option', { name: 'The row' }));
+
+        await waitFor(() => expect(showSnackbar).toHaveBeenCalledWith(refusedDialog));
+        expect(showModal).not.toHaveBeenCalled();
+      });
+
+      it('refuses a dialog for another patient after the search is widened from the chart to everyone', async () => {
+        const user = userEvent.setup();
+        onChart();
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: otherPatient })) },
+        ]);
+        render(<Omnibar />);
+
+        await user.click(screen.getByRole('combobox'));
+        await user.click(screen.getByRole('button', { name: /remove .* context/i }));
+        await user.type(screen.getByRole('combobox'), 'row');
+        await user.click(screen.getByRole('option', { name: 'The row' }));
+
+        await waitFor(() => expect(showSnackbar).toHaveBeenCalledWith(refusedDialog));
+        expect(showModal).not.toHaveBeenCalled();
+      });
+
+      it('still opens a dialog for the chart’s patient after the search is widened to everyone', async () => {
+        const user = userEvent.setup();
+        onChart();
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: chartPatient })) },
+        ]);
+        render(<Omnibar />);
+
+        await user.click(screen.getByRole('combobox'));
+        await user.click(screen.getByRole('button', { name: /remove .* context/i }));
+        await user.type(screen.getByRole('combobox'), 'row');
+        await user.click(screen.getByRole('option', { name: 'The row' }));
+
+        await waitFor(() =>
+          expect(showModal).toHaveBeenCalledWith('end-visit-dialog', {
+            patientUuid: chartPatient,
+            closeModal: expect.any(Function),
+          }),
+        );
+        expect(showSnackbar).not.toHaveBeenCalled();
+      });
+
+      it('draws no dialog row off a chart, since it couldn’t open there', async () => {
+        const user = userEvent.setup();
+        mountProviders([
+          {
+            name: 'rows',
+            meta: recordLane,
+            component: function Rows({ query, report }: OmnibarProviderProps) {
+              useEffect(
+                () =>
+                  report({
+                    query,
+                    title: 'Rows',
+                    status: 'ready',
+                    results: query
+                      ? [
+                          { id: 'row', title: 'The row', target: dialogFor({ patientUuid: otherPatient }) },
+                          { id: 'page', title: 'A page', target: { type: 'navigate', to: '/page' } },
+                        ]
+                      : [],
+                  }),
+                [query, report],
+              );
+              return null;
+            },
+          },
+        ]);
+        render(<Omnibar />);
+
+        await user.type(screen.getByRole('combobox'), 'row');
+
+        expect(await screen.findByRole('option', { name: 'A page' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'The row' })).not.toBeInTheDocument();
+      });
+
+      it('with the search widened, never makes a dialog for another patient the default, and lets one for the chart’s be it', async () => {
+        const user = userEvent.setup();
+        onChart();
+        const widen = async () => {
+          await user.click(screen.getAllByRole('combobox').at(-1));
+          await user.click(screen.getByRole('button', { name: /remove .* context/i }));
+          await user.type(screen.getAllByRole('combobox').at(-1), 'row');
+        };
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: otherPatient })) },
+        ]);
+        const { unmount } = render(<Omnibar />);
+        await widen();
+        expect(await screen.findByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'false');
+        unmount();
+
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: chartPatient })) },
+        ]);
+        render(<Omnibar />);
+        await widen();
+        await waitFor(() =>
+          expect(screen.getByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'true'),
+        );
+      });
+
+      it('opens nothing when the page has moved to another chart before the bar caught up', async () => {
+        const user = userEvent.setup();
+        onChart();
+        mountProviders([
+          { name: 'rows', meta: recordLane, component: offersRow(dialogFor({ patientUuid: chartPatient })) },
+        ]);
+        render(<Omnibar />);
+
+        await user.type(screen.getByRole('combobox'), 'row');
+        const row = await screen.findByRole('option', { name: 'The row' });
+        // The URL changes without the routing event the bar listens for, as in the moment before it fires
+        window.history.replaceState({}, '', `/openmrs/spa/patient/${otherPatient}/chart/Results`);
+        await user.click(row);
+
+        await waitFor(() => expect(showSnackbar).toHaveBeenCalledWith(refusedDialog));
+        expect(showModal).not.toHaveBeenCalled();
+      });
+
+      it('opens a dialog for the chart’s patient with its data props, without the provider’s functions', async () => {
+        const user = userEvent.setup();
+        onChart();
+        const onConfirmation = vi.fn();
+        mountProviders([
+          {
+            name: 'rows',
+            meta: recordLane,
+            component: offersRow(dialogFor({ patientUuid: chartPatient, size: 'sm', onConfirmation, close: vi.fn() })),
+          },
+        ]);
+        render(<Omnibar />);
+
+        await user.type(screen.getByRole('combobox'), 'row');
+        await user.click(screen.getByRole('option', { name: 'The row' }));
+
+        await waitFor(() =>
+          expect(showModal).toHaveBeenCalledWith('end-visit-dialog', {
+            patientUuid: chartPatient,
+            size: 'sm',
+            closeModal: expect.any(Function),
+          }),
+        );
+        expect(showSnackbar).not.toHaveBeenCalled();
+      });
+
+      it('never makes a dialog that names no patient the default, and lets one for the chart’s patient be it', async () => {
+        const user = userEvent.setup();
+        onChart();
+        const inChart: OmnibarProviderMeta = { lane: 'record', scopes: ['patient'], order: 10, defaultInChart: true };
+        mountProviders([{ name: 'rows', meta: inChart, component: offersRow(dialogFor({ visitUuid: 'v' })) }]);
+        const { unmount } = render(<Omnibar />);
+
+        await user.type(screen.getByRole('combobox'), 'row');
+        expect(await screen.findByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'false');
+        unmount();
+
+        mountProviders([
+          { name: 'rows', meta: inChart, component: offersRow(dialogFor({ patientUuid: chartPatient })) },
+        ]);
+        render(<Omnibar />);
+        await user.type(screen.getByRole('combobox'), 'row');
+        await waitFor(() =>
+          expect(screen.getByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'true'),
+        );
+      });
+
+      it('opens nothing on Enter when a highlighted dialog row is reported again with other props', async () => {
+        const user = userEvent.setup();
+        onChart();
+        const mounted = new Map<string, OmnibarProviderProps>();
+        mountProviders([
+          {
+            name: 'rows',
+            meta: recordLane,
+            component: function Recorder(props: OmnibarProviderProps) {
+              mounted.set(props.query, props);
+              return null;
+            },
+          },
+        ]);
+        render(<Omnibar />);
+        const reportDialog = (patientUuid: string) =>
+          act(() =>
+            mounted.get('row').report({
+              query: 'row',
+              title: 'Rows',
+              status: 'ready',
+              results: [
+                { id: 'row', title: 'The row', target: dialogFor({ patientUuid }) },
+                { id: 'other', title: 'Another row', target: { type: 'navigate', to: '/other' } },
+              ],
+            }),
+          );
+
+        await user.type(screen.getByRole('combobox'), 'row');
+        reportDialog(chartPatient);
+        await user.keyboard('{ArrowDown}');
+        expect(screen.getByRole('option', { name: 'The row' })).toHaveAttribute('aria-selected', 'true');
+
+        reportDialog(chartPatient.toUpperCase());
+        await user.keyboard('{Enter}');
+
+        expect(showModal).not.toHaveBeenCalled();
+      });
     });
   });
 

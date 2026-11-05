@@ -1729,3 +1729,56 @@ The review confirmed that only the label and its existing test expectations chan
 - `yarn build`: passes with the existing asset-size warning for shared fallback chunks.
 - `yarn extract-translations`: preserves the new label and produces no other catalog changes.
 - Browser check: a `/lab weight` query shows the "Chart values" pill beside "Results for “weight”". The PR screenshot in `docs/media/chart-values-command.png` is cropped to this heading and contains no patient details. No layout or runtime behavior changes.
+
+## Feature: a result may open a confirming dialog (contract 1, additive)
+
+[#46](https://github.com/openmrs/openmrs-esm-omnibar-app/pull/46), on `feat/modal-target`. A result's target may be `{ type: 'modal', modalName, modalProps? }`, which the host opens with `showModal(modalName, { ...modalProps, closeModal })`. The first user is the patient chart's `/visit` command, whose "End active visit" row opens the chart's own `end-visit-dialog`, the same confirmation as the patient banner's. Choosing the row only opens the dialog; the clinician confirms there. `OMNIBAR_CONTRACT_VERSION` stays 1, and an older host drops such a result. The widened design rule 1 is listed under Open in [`docs/decisions.md`](docs/decisions.md) until Paul decides.
+
+| Change | Commit |
+| --- | --- |
+| The `modal` target: type, validation, copy, the patient check, `executeTarget`, the refusal snackbar, its strings, tests and the contract doc | fc8f23d |
+| Review on the PR (Daniel): a dialog is kept out of an answer's sources; tests for the refused dialog's snackbar and the dropped source | d653f4b |
+| Review on the PR (Daniel): every doc that listed what a result can open now includes a confirming dialog, and the widened rule 1 is recorded as a proposed decision | 940d531 |
+
+### Review round 1 (independent code review and security review, Claude): no blockers
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| security, should: with the bar widened on a chart, a dialog wasn't checked at all, so a global provider's dialog for another patient could open over the chart, and could be the default. `end-visit-dialog` doesn't name the patient, so its confirmation wouldn't catch it | A dialog is checked against the chart open on the page, whatever the bar's scope, and is refused off a chart | 5b95c23 |
+| security, should: a `patientUuid` that isn't a string, such as `[uuid]`, named no one, so the check passed while the dialog could still read it as a patient | A dialog that names no patient counts as another patient's, so it's refused, and never the default or dedupe's keeper | 5b95c23 |
+| code, should: function-valued `modalProps` (`onConfirmation`, as several chart modals take) would run the provider's own code behind the confirm, and a re-report with a new closure kept the old one | `copyTarget` drops a dialog's top-level functions, so the dialog the app registered does what it confirms | 5b95c23 |
+| code, nit: a dialog row with a `dedupeId` could stand in for a record's row in dedupe | A dialog result has no `dedupeId` | 5b95c23 |
+| code, nit: `OmnibarSource.target` still allowed a modal | `Exclude<OmnibarTarget, { type: 'modal' }>` | 5b95c23 |
+| both, nit: the refusal subtitle said "for another patient than this chart's" for every refusal | "It wasn't for the patient whose chart is open." | 5b95c23 |
+| code, should: README rule 6, the concept's line on what the shell does and its type sketch, and the views rule still described only links and workspaces | Updated; views don't open dialogs | 7572718 |
+| both, nits: the docs didn't say what the host checks for a dialog, that it can't verify the dialog confirms, what happens to an unknown name, or that a provider can't detect an older host | The contract's `modal` row, README, AGENTS and the type comments say so | 7572718 |
+| code, nit: an undecided proposal sat under a dated heading in `docs/decisions.md` | Moved under Open | 7572718 |
+| code, should: no tests for the closeModal override, a dialog off a chart, the default highlight, a re-reported dialog, non-object props or function props | Added, and each new guard mutation-checked: reverting it fails a test | 5b95c23 |
+
+### Review round 2 (re-check, code and security, Claude): no blockers, one should-fix
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| code, should, and security, nit: with the bar widened or off a chart, a dialog row was still drawn and could be the default, though Enter on it was refused | Dialog rows are judged against the page's chart for the default highlight, and aren't drawn off a chart | 340ac3e |
+| security, nit: the chart is read from state that follows the routing event, so in the moment before it fires a dialog for the old chart could pass | At Enter the URL is read again, and a dialog opens only when it agrees with the bar | 340ac3e |
+| security, nit: `dedupeId` was decided by reading the provider's object again; a provider's non-function `close` still replaced the framework's | Decided from the host's copy; any `close` is dropped | 340ac3e |
+| code, nits: the docs said "any function" where only top-level ones are dropped, and paired dialogs with dedupe; one test line proved nothing | Reworded; the line removed | 340ac3e |
+
+### Review round 3 (re-check, code and security, Claude): no blockers, no should-fixes
+
+Both confirmed the default highlight, the drawing of rows and opening now agree in patient scope, in a widened bar and off a chart; that the live-URL check only narrows, and refuses only while the URL and the bar disagree; and that rows other than dialogs, workspaces and links behave as before.
+
+Not fixed, and why:
+
+- A workspace whose `patientUuid` isn't a string still launches. That's existing behaviour, pinned by tests that say so; dialogs don't have it. A candidate for its own ticket.
+- With the bar widened on a chart, a workspace is still checked only against its own `requiresOpenGroup`, not against the chart on the page, as before this change. So a global provider's workspace row naming another patient, without `requiresOpenGroup`, can be the default, and Enter launches it onto that chart's side panel; the framework's `launchWorkspace2` asks first only when something open has unsaved changes. The reason this change checks a dialog against the page's chart applies to workspaces too. Raised by Daniel in review; left as a follow-up, so this change doesn't alter how workspaces launch.
+- Only a top-level `patientUuid` is checked, as for workspaces; other keys such as `patient` or `visit` aren't. Documented in the contract.
+- Functions nested inside `modalProps` aren't walked. No chart dialog reads one. Documented.
+- A provider can't tell whether the host opens dialogs, so on an older host the row simply doesn't show. A capability signal would be a contract addition; left for Paul. Documented.
+- An unregistered `modalName` gets the framework's own error toast, not the bar's snackbar: the framework doesn't expose a registration check.
+- `modalProps` stays typed `object`; `Record<string, unknown>` would reject providers' own prop interfaces.
+- Not the omnibar's: `end-visit-dialog` doesn't name the patient it ends the visit for. Worth suggesting in the patient chart.
+
+- Tests: 669 on main, 673 at fc8f23d, 675 at 940d531, 693 at 7572718, 695 at 340ac3e. `yarn verify`: `Tasks: 3 successful, 3 total`. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit.
+- No new origin; no new request.
+- Tried in a browser on a local O3 (the `/visit` end row on a chart with an active visit, then Cancel), before the review rounds; not on o3.

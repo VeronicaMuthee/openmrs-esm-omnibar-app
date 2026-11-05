@@ -28,13 +28,13 @@ The shell does the shared, hard parts; providers only describe what they found. 
 
 &#91;embedded content: omnibar architecture · 4 providers, 1 shell\]
 
-Providers receive the query and scope and send back reports; only the shell turns a chosen result into navigation or a workspace.
+Providers receive the query and scope and send back reports; only the shell turns a chosen result into navigation, a workspace or a confirming dialog.
 
 - **Providers are extensions.** A provider sits in `omnibar-providers-slot`, renders nothing, and calls `report()`. It can use SWR and its app's existing hooks, so patient search reuses the same REST call it already makes.
 - **Lanes instead of a merged ranking.** Results group into `record`, `navigate` and `answer` lanes, then by each provider's declared order. Scores from different providers aren't comparable, so the shell doesn't pretend they are.
 - **Answers never move the list.** The answer lane renders below the results and is outside arrow-key order. Selection follows a result's key, not its row, so late results can't shift the highlighted item.
 - **The shell owns the scope.** Inside a chart the bar is patient-scoped, shown by a chip with the patient's name. Providers receive the patient and can't choose it. Changing charts clears everything on screen and resets a widened search, so a query never runs silently against the wrong patient.
-- **Results describe destinations; they don't act.** A target is a page on the same site or a workspace launch. There is no `onSelect` callback, so the normal way to build a provider has no path to write to the record from the bar. This is a convention set by the contract's shape, not a sandbox.
+- **Results describe destinations; they don't act.** A target is a page on the same site, a workspace launch or, for an action that confirms first, a dialog. There is no `onSelect` callback, so the normal way to build a provider has no path to write to the record from the bar. This is a convention set by the contract's shape, not a sandbox.
 - **Answers must cite records.** A finished answer in the bar with no sources is hidden, with a note saying why. A query results view may show an answer that cites nothing, such as "No surgeries are recorded.", only with a plain label beside it saying it cites no records, so the clinician checks the chart. Sources are links into the chart.
 - **Stale results are dropped.** Each report carries the query it answers; a slow reply to `cd` can't overwrite results for `cd4`.
 - **Deterministic first.** Patients, pages and dictionary concepts answer most lookups instantly. ChartSearch appears only as an explicit destination for question-like input.
@@ -88,7 +88,8 @@ interface OmnibarContext { scope: OmnibarScope; patientUuid?: string; locale: st
 
 type OmnibarTarget =
   | { type: 'navigate'; to: string }
-  | { type: 'workspace'; workspaceName: string; workspaceProps?: object; windowProps?: object; groupProps?: object };
+  | { type: 'workspace'; workspaceName: string; workspaceProps?: object; windowProps?: object; groupProps?: object }
+  | { type: 'modal'; modalName: string; modalProps?: object };
 
 interface OmnibarResult {
   id: string;
