@@ -24,7 +24,12 @@ const maxAliasLength = 32;
 const maxAliasesPerSource = 24;
 const maxLabelLength = 40;
 const maxDescriptionLength = 120;
+const maxExamples = 3;
+const maxExampleLength = 40;
 const directionControls = /[‪-‮⁦-⁩‎‏]/g;
+
+/** "?" alone, or "/help": list every command with examples of what to type after it. */
+export const isHelpQuery = (value: string) => /^\s*(\?|\/help)\s*$/iu.test(value);
 
 export { isCommandId };
 
@@ -72,6 +77,11 @@ export function cleanText(text: unknown, maxLength: number): string | undefined 
   return characters.length > maxLength ? `${characters.slice(0, maxLength - 1).join('')}…` : plain;
 }
 
+const cleanExamples = (text: string | undefined): Array<string> =>
+  (text?.split(',') ?? [])
+    .map((example) => cleanText(example, maxExampleLength))
+    .filter((example): example is string => Boolean(example));
+
 export interface OmnibarCommandEntry {
   id: string;
   /** In the user's language when a provider module translates it, otherwise the first alias. */
@@ -79,6 +89,11 @@ export interface OmnibarCommandEntry {
   description?: string;
   /** The aliases that resolve to this command, as written, the first being the main one. */
   aliases: Array<string>;
+  /**
+   * What to type after the command, such as `amox` for `/order amox`, from each declaring module's
+   * `omnibarCommand.<id>.examples` (comma-separated), merged and cut to three. Help shows them.
+   */
+  examples: Array<string>;
   /**
    * Scopes in which at least one of its providers is mounted, and `patient` when a Query results view
    * declares it.
@@ -149,6 +164,7 @@ interface Draft {
   id: string;
   label?: string;
   description?: string;
+  examples: Array<string>;
   providerAliases: Array<string>;
   configAliases: Array<string>;
   scopes: Set<OmnibarScope>;
@@ -165,9 +181,10 @@ const viewOnlyRank = 3;
 /**
  * Builds the alias table. Sources, lowest precedence first: each assigned provider's `meta.command`,
  * in slot order, then each Query results view's, in its slot's order; each declaring module's
- * translations (`omnibarCommand.<id>.aliases`, comma-separated, `.label`, `.description`); the
- * `commands` config. Declarations sharing an id have their aliases merged, and the label and
- * description come from the first one whose module has them, providers before views. A view counts
+ * translations (`omnibarCommand.<id>.aliases`, comma-separated, `.label`, `.description`,
+ * `.examples`, comma-separated); the `commands` config. Declarations sharing an id have their aliases
+ * and examples merged, and the label and description come from the first one whose module has them,
+ * providers before views. A view counts
  * only as Query results would mount it: for a patient, on a contract this host speaks; its command is
  * available in a chart. Config adds aliases, drops the lower sources' with `replaceAliases`, or removes
  * the command with `enabled: false`; it can't add a command nothing declares.
@@ -196,6 +213,7 @@ export function buildCommandTable(
     if (!draft) {
       draft = {
         id,
+        examples: [],
         providerAliases: [],
         configAliases: [],
         scopes: new Set(),
@@ -219,6 +237,8 @@ export function buildCommandTable(
       draft.providerAliases.push(...cleanAliases(translated?.split(',')));
       draft.label ??= cleanText(translate(moduleName, `omnibarCommand.${id}.label`), maxLabelLength);
       draft.description ??= cleanText(translate(moduleName, `omnibarCommand.${id}.description`), maxDescriptionLength);
+      // Unlike the label, every module's examples count: `/order` finds drugs in one app and tests in another
+      draft.examples.push(...cleanExamples(translate(moduleName, `omnibarCommand.${id}.examples`)));
     }
   };
 
@@ -295,6 +315,7 @@ export function buildCommandTable(
       id: draft.id,
       label: draft.label ?? aliases[0],
       description: draft.description,
+      examples: [...new Set(draft.examples)].slice(0, maxExamples),
       aliases,
       scopes: scopes.filter((scope) => draft.scopes.has(scope)),
     });
@@ -348,7 +369,7 @@ export function orderForListing(
  */
 export type CommandInput =
   | { mode: 'text'; text: string; notCommand?: string; unavailable?: OmnibarCommandEntry }
-  | { mode: 'listing'; prefix: string }
+  | { mode: 'listing'; prefix: string; help?: true }
   | { mode: 'chosen'; command: OmnibarCommandEntry; rest: string };
 
 export function parseCommandInput(
@@ -356,6 +377,10 @@ export function parseCommandInput(
   table: CommandTable,
   isAvailable: (command: OmnibarCommandEntry) => boolean,
 ): CommandInput {
+  // Help lists every command, unless an app declares a "help" command of its own
+  if (isHelpQuery(value) && !table.resolve('help')) {
+    return { mode: 'listing', prefix: '', help: true };
+  }
   if (!value.startsWith('/')) {
     return { mode: 'text', text: value };
   }

@@ -1085,4 +1085,53 @@ describe('slash commands in the bar', () => {
       }
     });
   });
+
+  describe('help', () => {
+    it('lists every command with examples for "?", mounting no provider, and chooses one', async () => {
+      const user = userEvent.setup();
+      const { patients, labs } = builtIns();
+      inChart();
+      render(<Omnibar />);
+
+      await user.type(screen.getByRole('combobox'), '?');
+      const options = within(screen.getByRole('listbox', { name: 'Commands' })).getAllByRole('option');
+
+      expect(options).toHaveLength(3);
+      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
+      expect(screen.getByText('Try /patient mary')).toBeInTheDocument();
+      expect(screen.queryByText('Type ? for examples of each command')).not.toBeInTheDocument();
+      expect(patients.seen.at(-1)?.query ?? '').toBe('');
+      expect(labs.seen.at(-1)?.query ?? '').toBe('');
+
+      await user.click(
+        within(options.find((option) => option.textContent.includes('Chart values'))).getByText('Chart values'),
+      );
+      expect(screen.getByText('Chart values')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toHaveValue('');
+    });
+
+    it('opens for "/help" too, and the "/" list says how to get it', async () => {
+      const user = userEvent.setup();
+      builtIns();
+      inChart();
+      render(<Omnibar />);
+
+      await user.type(screen.getByRole('combobox'), '/');
+      expect(screen.getByText('Type ? for examples of each command')).toBeInTheDocument();
+
+      await user.type(screen.getByRole('combobox'), 'help');
+      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
+    });
+
+    it('greys out a command not available here, without examples', async () => {
+      const user = userEvent.setup();
+      builtIns();
+      render(<Omnibar />);
+
+      await user.type(screen.getByRole('combobox'), '?');
+
+      expect(screen.queryByText('Try /lab weight · /lab cd4')).not.toBeInTheDocument();
+      expect(screen.getByText('Try /patient mary')).toBeInTheDocument();
+    });
+  });
 });

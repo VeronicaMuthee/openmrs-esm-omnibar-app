@@ -44,7 +44,7 @@ Several providers declaring the same id is normal: chart lookup and the query st
 The host builds one table per locale, `alias → id`, from three sources in increasing precedence:
 
 1. **`routes.json` meta** of every provider assigned to `omnibar-providers-slot`, in provider order. These are the English defaults and always present.
-2. **The provider module's translations.** Key `omnibarCommand.<id>.aliases`, a comma-separated list; `omnibarCommand.<id>.label` for the label; `omnibarCommand.<id>.description` for the list's one line. Read with `translateFrom(moduleName, key)`, which is `i18n.t(key, { ns: moduleName })`.
+2. **The provider module's translations.** Key `omnibarCommand.<id>.aliases`, a comma-separated list; `omnibarCommand.<id>.label` for the label; `omnibarCommand.<id>.description` for the list's one line; optionally `omnibarCommand.<id>.examples`, comma-separated, for what help shows after the command. Read with `translateFrom(moduleName, key)`, which is `i18n.t(key, { ns: moduleName })`.
 3. **Implementer config** in the omnibar's own schema:
 
 ```json

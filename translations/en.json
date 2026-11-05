@@ -6,6 +6,7 @@
   "clearSearch": "Clear search",
   "close": "Close",
   "closeSearch": "Close search",
+  "commandExamples": "Try {{examples}}",
   "commandNeedsChart": "Open a patient’s chart first",
   "commandNeedsChartScope": "Search only {{name}}’s chart first",
   "commandNotAvailableHere": "That command isn’t available here.",
@@ -25,6 +26,7 @@
   "enterToSeeAllAndAsk": "Enter to see all results for “{{query}}” and ask {{model}}",
   "enterToSeeCommand": "Enter to see {{command}} for “{{query}}”",
   "goTo": "Go to",
+  "helpHint": "Type ? for examples of each command",
   "inThisChart": "In this chart",
   "keyboardHints": "↑ ↓ to move, Enter to open, Esc to close",
   "keyboardHintsCommands": "↑ ↓ to move, Enter or Tab to choose a command, Esc to close",
@@ -42,16 +44,19 @@
     "go": {
       "aliases": "go, open, page",
       "description": "Open a page or app",
+      "examples": "appointments, ward",
       "label": "Pages"
     },
     "lab": {
       "aliases": "lab, labs, results, obs, value",
       "description": "Lab results and other values in this chart",
+      "examples": "weight, cd4",
       "label": "Chart values"
     },
     "patient": {
       "aliases": "patient, pt, find",
       "description": "Find a patient by name or ID",
+      "examples": "mary",
       "label": "Patients"
     }
   },

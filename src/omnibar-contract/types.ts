@@ -47,7 +47,9 @@ export interface OmnibarContext {
  * history and config use it. `aliases` are the English names people type after the slash, without the
  * slash, each one word. Translated aliases, the label and the description come from the provider
  * module's translations: `omnibarCommand.<id>.aliases` (comma-separated), `.label` and `.description`.
- * Several providers may declare the same id; their aliases are merged and all of them run.
+ * Optionally, `.examples` (comma-separated) gives what to type after the command, such as `amox` for
+ * `/order amox`; help ("?" or "/help") shows up to three. Several providers may declare the same id;
+ * their aliases and examples are merged and all of them run.
  */
 export interface OmnibarCommand {
   id: string;

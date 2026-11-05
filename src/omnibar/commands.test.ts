@@ -322,6 +322,7 @@ describe('the slash-command alias table', () => {
         id: 'ask',
         label: 'Ask ChartSearch',
         description: 'Ask ChartSearch, an AI, about this chart',
+        examples: [],
         aliases: ['ask', 'question'],
         scopes: ['patient'],
       });
@@ -433,7 +434,7 @@ describe('orderForListing', () => {
   });
 
   it('keeps the given order within each group and leaves the list it was given alone', () => {
-    const commands = ['a', 'b', 'c', 'd'].map((id) => ({ id, label: id, aliases: [id], scopes: [] }));
+    const commands = ['a', 'b', 'c', 'd'].map((id) => ({ id, label: id, aliases: [id], examples: [], scopes: [] }));
     const given = commands.map(({ id }) => id);
     const ordered = orderForListing(commands, (command) => command.id === 'b' || command.id === 'd');
     expect(ordered.map(({ id }) => id)).toEqual(['b', 'd', 'a', 'c']);
@@ -478,5 +479,54 @@ describe('parseCommandInput', () => {
     expect(parse(' /lab cd4')).toEqual({ mode: 'text', text: ' /lab cd4' });
     expect(parse('cd4 /lab')).toEqual({ mode: 'text', text: 'cd4 /lab' });
     expect(parse('/ cd4')).toEqual({ mode: 'text', text: '/ cd4' });
+  });
+
+  it('lists every command for help: "?" alone or "/help"', () => {
+    for (const typed of ['?', ' ? ', '/help', '/HELP ']) {
+      expect(parse(typed)).toEqual({ mode: 'listing', prefix: '', help: true });
+    }
+    expect(parse('? cd4')).toEqual({ mode: 'text', text: '? cd4' });
+    expect(parse('what is this?')).toEqual({ mode: 'text', text: 'what is this?' });
+  });
+
+  it('leaves "/help" to an app that declares a help command of its own', () => {
+    const withHelp = buildCommandTable(
+      [provider('guide', { command: { id: 'help', aliases: ['help'] } })],
+      [],
+      'en',
+      noTranslations,
+    );
+
+    expect(parseCommandInput('/help ', withHelp, inChart)).toMatchObject({ mode: 'chosen', command: { id: 'help' } });
+  });
+});
+
+describe('command examples', () => {
+  it('merges every declaring module’s examples, cleaned, without repeats and cut to three', () => {
+    const table = buildCommandTable(
+      [
+        provider('drugs', { command: { id: 'order', aliases: ['order'] } }, 'drugs-app'),
+        provider('tests', { command: { id: 'order', aliases: ['order'] } }, 'tests-app'),
+      ],
+      [],
+      'en',
+      translations({
+        'drugs-app': { 'omnibarCommand.order.examples': ' amox ,, metformin ' },
+        'tests-app': { 'omnibarCommand.order.examples': 'amox, cbc, malaria smear' },
+      }),
+    );
+
+    expect(table.byId.get('order')?.examples).toEqual(['amox', 'metformin', 'cbc']);
+  });
+
+  it('has none when no module gives examples', () => {
+    const table = buildCommandTable(
+      [provider('chart', { command: { id: 'lab', aliases: ['lab'] } })],
+      [],
+      'en',
+      noTranslations,
+    );
+
+    expect(table.byId.get('lab')?.examples).toEqual([]);
   });
 });

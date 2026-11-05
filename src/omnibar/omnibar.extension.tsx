@@ -33,6 +33,7 @@ import {
 } from './omnibar.resource';
 import {
   commandIdOf,
+  isHelpQuery,
   type OmnibarCommandEntry,
   omnibarProvidersSlot,
   orderForListing,
@@ -128,7 +129,8 @@ const Omnibar: React.FC = () => {
   // Query results views may declare commands too; one only views declare mounts no providers here.
   const assignedViews = useAssignedExtensions(OMNIBAR_QUERY_RESULTS_SLOT);
   const [commandId, setCommandId] = useState<string | null>(null);
-  const listingCommands = !commandId && query.startsWith('/') && !/\s/u.test(query);
+  // Help lists the commands too, so their modules' translations, examples included, load for it as well
+  const listingCommands = !commandId && (isHelpQuery(query) || (query.startsWith('/') && !/\s/u.test(query)));
   const commandTable = useCommandTable(
     assigned,
     assignedViews,
@@ -153,6 +155,7 @@ const Omnibar: React.FC = () => {
     [activeCommand, query, commandTable, isAvailable],
   );
   const listing = parsedInput?.mode === 'listing';
+  const help = parsedInput?.mode === 'listing' && parsedInput.help === true;
   const [commandHighlight, setCommandHighlight] = useState<string | null>(null);
   const listedCommands = useMemo(
     () =>
@@ -1099,11 +1102,26 @@ const Omnibar: React.FC = () => {
                           {available ? command.description : unavailableReason}
                         </span>
                       )}
+                      {help && available && command.examples.length > 0 && (
+                        <span className={styles.optionSubtitle} dir="auto">
+                          {t('commandExamples', 'Try {{examples}}', {
+                            examples: command.examples
+                              .map((example) => `/${command.aliases[0]} ${example}`)
+                              .join(' · '),
+                            interpolation: { escapeValue: false },
+                          })}
+                        </span>
+                      )}
                     </span>
                   </li>
                 );
               })}
             </ul>
+          )}
+          {listing && !help && listedCommands.length > 0 && (
+            <p className={styles.commandNote} dir="auto">
+              {t('helpHint', 'Type ? for examples of each command')}
+            </p>
           )}
           {listing && !listedCommands.length && (
             <p className={styles.commandNote} dir="auto">
