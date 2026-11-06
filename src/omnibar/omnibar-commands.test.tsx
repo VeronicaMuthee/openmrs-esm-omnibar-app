@@ -29,6 +29,13 @@ import {
   type OmnibarViewMeta,
 } from './types';
 
+/**
+ * A line the bar writes with its commands in `<bdi>`s, such as "Try /lab weight · /lab cd4", found by
+ * its whole text: getByText alone reads only the text outside them. Each such line sets its own direction.
+ */
+const line = (text: string) => (_: string, element: Element | null) =>
+  Boolean(element?.matches('[dir="auto"]')) && element?.textContent === text;
+
 // As in omnibar.test.tsx: the framework mock's ExtensionSlot mounts nothing, so these behave like the
 // real ones. `select` filters the assigned extensions and <Extension state> passes state as props.
 const providerComponents = vi.hoisted(() => new Map<string, React.ComponentType<OmnibarProviderProps>>());
@@ -252,7 +259,9 @@ describe('slash commands in the bar', () => {
       render(<Omnibar />);
 
       await user.type(screen.getByRole('combobox'), '/zz');
-      expect(screen.getByText('No command /zz')).toBeInTheDocument();
+      expect(screen.getByText(line('No command /zz'))).toBeInTheDocument();
+      // In its own direction, so a right-to-left sentence can't move the slash to the end
+      expect(screen.getByText('/zz').tagName).toBe('BDI');
     });
 
     it('greys out a command with no provider in this scope, says why, and won’t choose it', async () => {
@@ -448,7 +457,7 @@ describe('slash commands in the bar', () => {
 
       await user.type(screen.getByRole('combobox'), '/usr cd4');
 
-      expect(screen.getByText('No command /usr')).toBeInTheDocument();
+      expect(screen.getByText(line('No command /usr'))).toBeInTheDocument();
       expect(patients.seen.at(-1)).toEqual({ query: '/usr cd4', command: undefined });
     });
 
@@ -787,7 +796,7 @@ describe('slash commands in the bar', () => {
       ).not.toBeInTheDocument();
 
       await user.type(screen.getByRole('combobox'), 'ask cd4');
-      expect(screen.getByText('No command /ask')).toBeInTheDocument();
+      expect(screen.getByText(line('No command /ask'))).toBeInTheDocument();
       expect(screen.queryByText('Ask ChartSearch')).not.toBeInTheDocument();
     });
   });
@@ -1028,7 +1037,7 @@ describe('slash commands in the bar', () => {
       await user.keyboard('{Escape}');
       await user.clear(field);
       await user.type(field, '/go ward');
-      expect(screen.getByText('No command /go')).toBeInTheDocument();
+      expect(screen.getByText(line('No command /go'))).toBeInTheDocument();
       expect(pages.seen.at(-1)).toEqual({ query: '/go ward', command: undefined });
 
       await user.clear(field);
@@ -1097,8 +1106,10 @@ describe('slash commands in the bar', () => {
       const options = within(screen.getByRole('listbox', { name: 'Commands' })).getAllByRole('option');
 
       expect(options).toHaveLength(3);
-      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
-      expect(screen.getByText('Try /patient mary')).toBeInTheDocument();
+      expect(screen.getByText(line('Try /lab weight · /lab cd4'))).toBeInTheDocument();
+      expect(screen.getByText(line('Try /patient mary'))).toBeInTheDocument();
+      // Each example in its own direction, so a right-to-left "Try" can't move a slash to the end
+      expect(['/lab weight', '/lab cd4'].map((example) => screen.getByText(example).tagName)).toEqual(['BDI', 'BDI']);
       expect(screen.queryByText('Type ? for examples of each command')).not.toBeInTheDocument();
       expect(patients.seen.at(-1)?.query ?? '').toBe('');
       expect(labs.seen.at(-1)?.query ?? '').toBe('');
@@ -1121,13 +1132,13 @@ describe('slash commands in the bar', () => {
 
       // Following the hint: "?" typed in the "/" list opens help, not "No command /?"
       await user.type(screen.getByRole('combobox'), '?');
-      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
-      expect(screen.queryByText('No command /?')).not.toBeInTheDocument();
+      expect(screen.getByText(line('Try /lab weight · /lab cd4'))).toBeInTheDocument();
+      expect(screen.queryByText(line('No command /?'))).not.toBeInTheDocument();
       await user.clear(screen.getByRole('combobox'));
       await user.type(screen.getByRole('combobox'), '/');
 
       await user.type(screen.getByRole('combobox'), 'help');
-      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
+      expect(screen.getByText(line('Try /lab weight · /lab cd4'))).toBeInTheDocument();
     });
 
     it('chooses the first available command on Enter, as the "/" list does, and sends nothing to Query results', async () => {
@@ -1186,11 +1197,11 @@ describe('slash commands in the bar', () => {
 
       await user.clear(field);
       await user.type(field, '?');
-      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
+      expect(screen.getByText(line('Try /lab weight · /lab cd4'))).toBeInTheDocument();
 
       await user.clear(field);
       await user.type(field, '/help');
-      expect(screen.queryByText('Try /lab weight · /lab cd4')).not.toBeInTheDocument();
+      expect(screen.queryByText(line('Try /lab weight · /lab cd4'))).not.toBeInTheDocument();
       expect(within(screen.getByRole('listbox', { name: 'Commands' })).getAllByRole('option')).toHaveLength(1);
     });
 
@@ -1227,8 +1238,8 @@ describe('slash commands in the bar', () => {
 
       await user.type(screen.getByRole('combobox'), '?');
 
-      expect(screen.queryByText('Try /lab weight · /lab cd4')).not.toBeInTheDocument();
-      expect(screen.getByText('Try /patient mary')).toBeInTheDocument();
+      expect(screen.queryByText(line('Try /lab weight · /lab cd4'))).not.toBeInTheDocument();
+      expect(screen.getByText(line('Try /patient mary'))).toBeInTheDocument();
     });
   });
 });

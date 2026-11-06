@@ -34,7 +34,7 @@
   "keyboardHintsSubmitAndAsk": "↑ ↓ to choose a result, Enter to see all and ask {{model}}, Esc to close",
   "latestOn": "Latest, {{date}}",
   "no": "No",
-  "noCommand": "No command /{{name}}",
+  "noCommand": "No command {{name}}",
   "noCommands": "No commands are available.",
   "noDate": "No date",
   "noMatches": "Nothing matches “{{query}}”. Check the spelling or try a patient ID.",

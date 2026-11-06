@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
 import { InlineLoading } from '@carbon/react';
@@ -73,6 +73,30 @@ function capNote(note: unknown): string | undefined {
   }
   const characters = Array.from(note);
   return characters.length > maxNoteLength ? `${characters.slice(0, maxNoteLength - 1).join('')}…` : note;
+}
+
+/** Where a translated sentence takes its commands, given to `t` in place of them and split on by withCommands. */
+const commandSlot = '\u0000';
+
+/**
+ * A translated sentence with its commands put in its slot, each in its own `<bdi>`: in a right-to-left
+ * sentence a slash next to it would otherwise join the sentence, and "/order amox" read "order amox/".
+ */
+function withCommands(sentence: string, commands: Array<string>) {
+  // A translation that repeats the slot still shows all its text, with the commands once
+  const [before, ...after] = sentence.split(commandSlot);
+  return (
+    <>
+      {before}
+      {commands.map((command, index) => (
+        <Fragment key={command}>
+          {index > 0 && ' · '}
+          <bdi>{command}</bdi>
+        </Fragment>
+      ))}
+      {after.join('')}
+    </>
+  );
 }
 
 /**
@@ -1048,10 +1072,10 @@ const Omnibar: React.FC = () => {
 
           {parsedInput?.mode === 'text' && parsedInput.notCommand && (
             <p className={styles.commandNote} dir="auto">
-              {t('noCommand', 'No command /{{name}}', {
-                name: parsedInput.notCommand,
-                interpolation: { escapeValue: false },
-              })}
+              {withCommands(
+                t('noCommand', 'No command {{name}}', { name: commandSlot, interpolation: { escapeValue: false } }),
+                [`/${parsedInput.notCommand}`],
+              )}
             </p>
           )}
           {parsedInput?.mode === 'text' && parsedInput.unavailable && (
@@ -1105,12 +1129,13 @@ const Omnibar: React.FC = () => {
                       )}
                       {help && available && command.examples.length > 0 && (
                         <span className={styles.optionSubtitle} dir="auto">
-                          {t('commandExamples', 'Try {{examples}}', {
-                            examples: command.examples
-                              .map((example) => `/${command.aliases[0]} ${example}`)
-                              .join(' · '),
-                            interpolation: { escapeValue: false },
-                          })}
+                          {withCommands(
+                            t('commandExamples', 'Try {{examples}}', {
+                              examples: commandSlot,
+                              interpolation: { escapeValue: false },
+                            }),
+                            command.examples.map((example) => `/${command.aliases[0]} ${example}`),
+                          )}
                         </span>
                       )}
                     </span>
@@ -1127,10 +1152,10 @@ const Omnibar: React.FC = () => {
           {listing && !listedCommands.length && (
             <p className={styles.commandNote} dir="auto">
               {parsedInput?.mode === 'listing' && parsedInput.prefix
-                ? t('noCommand', 'No command /{{name}}', {
-                    name: parsedInput.prefix,
-                    interpolation: { escapeValue: false },
-                  })
+                ? withCommands(
+                    t('noCommand', 'No command {{name}}', { name: commandSlot, interpolation: { escapeValue: false } }),
+                    [`/${parsedInput.prefix}`],
+                  )
                 : t('noCommands', 'No commands are available.')}
             </p>
           )}
