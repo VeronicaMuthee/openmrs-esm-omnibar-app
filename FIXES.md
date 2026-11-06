@@ -1782,3 +1782,30 @@ Not fixed, and why:
 - Tests: 669 on main, 673 at fc8f23d, 675 at 940d531, 693 at 7572718, 695 at 340ac3e. `yarn verify`: `Tasks: 3 successful, 3 total`. `yarn build`: `Rspack compiled with 1 warning`, the asset size limit.
 - No new origin; no new request.
 - Tried in a browser on a local O3 (the `/visit` end row on a chart with an active visit, then Cancel), before the review rounds; not on o3.
+
+## Feature: help in the bar (contract 1, additive)
+
+On `feat/help-command`. `?` alone lists every command, as a bare `/` does, with up to three examples under each one that's available here ("Try /order amox · /order cbc"). Examples come from each declaring module's translations, `omnibarCommand.<id>.examples` (comma-separated), merged across modules and cleaned like labels. `/help` alone does the same until a command answers to the alias `help`. The `/` list says "Type ? for examples of each command". Help is listed under Open in [`docs/decisions.md`](docs/decisions.md) until Paul decides.
+
+| Change | Commit |
+| --- | --- |
+| Help: `?` and `/help`, examples from each module's translations, the `/` list's hint, the host's own examples, tests and the contract doc | 831ffc0 |
+
+### Review round 1 (independent code review and security review, Claude): no blockers
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| code, should: the guard that gives `/help` to a command answering to `help` turned off `?` too, and the `/` list still said to type it. Any alias did it, a site's config alias on `/go` included, and so did a command not available in this scope | Only `/help` gives way; `?` is always help. Tests for an app's command, a config alias and a command not available here | 83cea9f |
+| code, should: `/help` sat against AGENTS.md's "no command id is special", and README and slash-commands.md kept `/help` for a knowledge-base app that nothing in this repo names | No command id is special: the host checks only whether `help` resolves. AGENTS.md, README, slash-commands.md (Opening, a new Help section, the provider table note, Not in this slice) and the provider contract say what help is; the proposal is under Open | 83cea9f |
+| code, should: `?` then Enter in a chart chooses the first available command as a chip, where it used to send `?` to Query results, and no test said so | Kept, as the `/` list behaves; a test pins it, and slash-commands.md says so | 83cea9f |
+| code, should: not logged here or in the decisions log | This section, and the Open entry | this commit |
+| code, nit: comments in `commands.ts` and the bar still said only `/` starts command input | Updated | 83cea9f |
+| code, nit: no tests for the 40-character cut, direction controls in examples, or help asking for the modules' translations | Added. Restoring the old guard fails the two new `?` tests | 83cea9f |
+| code, nit: Arabic keyboards type `؟` and Chinese and Japanese input methods `？`, so the hint pointed at a key that didn't work there | Both open help | 83cea9f |
+| code, question: three long examples at phone width | Checked at 375 px on a chart: three 40-character examples wrap to three lines, with no horizontal scroll | n/a |
+
+Checked and fine: examples go through `cleanText` and render as React text, and i18next doesn't expand `{{…}}` or `$t(…)` inside an interpolated value; no provider is mounted while help shows; commands not available here show no examples; the composition guard covers Enter on the help list.
+
+Not fixed, and why:
+
+- Right-to-left layout of "Try /order amox" under `dir="auto"` wasn't checked in a browser: there's no Arabic catalogue on the local server. A translator's string decides the order there.
