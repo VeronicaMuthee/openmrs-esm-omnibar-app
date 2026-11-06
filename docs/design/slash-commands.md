@@ -25,9 +25,11 @@ Several providers declaring the same id is normal: chart lookup and the query st
 
 ## What the user sees
 
-**Opening.** `/` anywhere outside a text field opens the bar in command mode: `/` already in the field, the command list showing. Ctrl/Cmd K opens it for plain text, as today. In the bar's own field, `/` as the first character enters command mode; `/` anywhere else is ordinary text.
+**Opening.** `/` anywhere outside a text field opens the bar in command mode: `/` already in the field, the command list showing. Ctrl/Cmd K opens it for plain text, as today. In the bar's own field, `/` as the first character enters command mode; `/` anywhere else is ordinary text. `?` alone, or `/help`, opens help (below).
 
 **The list.** A bare `/` lists every command available to this user: label, the aliases it answers to, and a one-line description from the declaring provider's translations. Typing filters the list by alias prefix. A command none of whose providers declare the current scope is listed greyed, with a short reason ("Open a patient's chart first", "Not available inside a chart"), and can't be chosen. Scope is never widened by a command in this version. Available commands come first and greyed ones after. Within each group, commands follow the bar's lanes (record, then navigate, then answer, then commands only a Query results view declares), and slot order within a lane. A command takes the earliest lane among its providers. The order is for the list only; alias conflicts are still settled by slot order. Arrow keys move through the list; Enter, Tab or a space on an exact alias chooses it.
+
+**Help.** `?` alone lists every command, as a bare `/` does, with up to three examples under each one that's available here: "Try /order amox · /order cbc". The full-width `？` and the Arabic `؟` that some keyboards type work too. Examples come from each declaring module's `omnibarCommand.<id>.examples`, merged across modules. `/help` alone does the same, unless a command answers to the alias `help`, such as a knowledge-base app's or a site's config alias; that command keeps `/help`, and `?` stays help. The `/` list says "Type ? for examples of each command". Help is the list and nothing more: no provider runs, and Enter or Tab chooses the highlighted command, as in the `/` list.
 
 **The chip.** A chosen command becomes a chip in the field, after the patient chip, showing the label. The text after it is the query. Backspace in an empty field removes the command chip first, then (inside a chart) the patient chip. Escape with a command chip removes the chip; a second Escape closes the bar.
 
@@ -87,7 +89,7 @@ Built-in declarations:
 | Destinations | `go` | go, open, page | As today |
 | ~~ChartSearch suggestion~~ | `ask` | ask, question | *Removed in ChartSearch step 3 with the bar's ChartSearch row.* `ask` is now declared by ChartSearch's answer view, from its own app (see below); no provider declares it |
 
-The README's `/cohort` and `/help` have no providers yet. They appear when the Cohort Builder and a knowledge-base app declare them from their own `routes.json`; nothing in this repo names them.
+The README's `/cohort` and `/help` have no providers yet. They appear when the Cohort Builder and a knowledge-base app declare them from their own `routes.json`; nothing in this repo declares them. Until a command answers to `help`, a bare `/help` opens the host's help.
 
 **The guards don't change.** The default highlight, dedupe, the fail-closed rule on other patients and the wristband exception are exactly as without a command. Under `/lab`, chart lookup and the query store both still carry `defaultInChart` and `chart-values`, so dedupe and the bounded wait work as before; destinations aren't mounted, so no destination waits. Under `/patient` inside a chart, the only providers running list other patients, so there is no default highlight and the user arrows to a row; the wristband exception still applies when the query is ID-shaped. An explicit `/patient` is not treated as arrowing. (Decided 2026-10-18; revisit if use on o3 shows it costs more than it protects.)
 
@@ -114,7 +116,7 @@ The six design rules. Scope is the host's and a command never widens it. Results
 ## Not in this slice
 
 - **The inferred-command chip** ("searching as /lab" for plain text). Proposed mechanism, so it can come later without a type system: `OmnibarReport.command?: string`, the id the report's results belong to. When no chip is set and every visible result shares one id, the shell shows the hint as a dismissable chip. Needs the built-in providers to set it, nothing else.
-- `/cohort` and `/help`, which wait on their apps.
+- `/cohort` and a knowledge-base `/help`, which wait on their apps.
 - Widening scope from inside a chart.
 - Per-command keyboard shortcuts, command arguments beyond the free text, and command history separate from query history.
 - A published npm package for the contract folder. As before, copies in other apps are refreshed by hand; this change adds `command` to `OmnibarProviderMeta`, `OmnibarViewMeta` and `OmnibarContext`, so the copies will need refreshing.

@@ -76,6 +76,7 @@ Typing `/` states the kind of query up front instead of leaving the omnibar to i
 | `/cohort women aged 15-49 enrolled in HIV` | A population question. Outside a chart only; inside one it's listed greyed out. | the Cohort Builder's app |
 | `/ask when did he start ART?` | A question for ChartSearch rather than something to look up. | ChartSearch's app |
 | `/help printing labels` | Search the knowledge base. | *Planned* |
+| `?` | Every command, with examples of what to type after it. `/help` alone does the same until an app answers to `/help`. | the omnibar, with each app's examples |
 
 `/` on its own lists the commands; a chosen one becomes a chip, and Backspace or Escape takes it off. Each command has a stable id and any number of aliases, so `/labs`, `/results` and `/obs` all mean `/lab`, a translation can add names in another language, and a site can add its own (`/vl` for viral load). A command that doesn't apply where you are, like `/lab` outside a chart, is listed greyed out with the reason. The full design is in [`docs/design/slash-commands.md`](docs/design/slash-commands.md).
 

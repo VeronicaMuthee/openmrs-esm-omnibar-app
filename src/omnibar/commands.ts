@@ -28,8 +28,15 @@ const maxExamples = 3;
 const maxExampleLength = 40;
 const directionControls = /[‪-‮⁦-⁩‎‏]/g;
 
-/** "?" alone, or "/help": list every command with examples of what to type after it. */
-export const isHelpQuery = (value: string) => /^\s*(\?|\/help)\s*$/iu.test(value);
+/**
+ * "?" alone lists every command with examples of what to type after it, as do the full-width "？" and
+ * the Arabic "؟" that some keyboards and input methods type. It is always the host's.
+ */
+const isQuestionMark = (value: string) => /^\s*[?？؟]\s*$/u.test(value);
+/** "/help" alone does the same, unless a command answers to the alias "help"; that command keeps it. */
+const isSlashHelp = (value: string) => /^\s*\/help\s*$/iu.test(value);
+/** Whether the field asks for help, before knowing which commands exist ("/help" may yet be a command's). */
+export const isHelpQuery = (value: string) => isQuestionMark(value) || isSlashHelp(value);
 
 export { isCommandId };
 
@@ -362,7 +369,8 @@ export function orderForListing(
 
 /**
  * What the field holds, read for a command. Only a "/" as the very first character starts one.
- * - listing: "/" and a word still being typed; the bar lists the commands that word could start
+ * - listing: "/" and a word still being typed; the bar lists the commands that word could start. With
+ *   `help`, "?" alone or "/help" (when no command answers to "help"): every command, with examples
  * - chosen: "/" and an alias of a command available here, then a space; the rest is the query
  * - text: anything else, sent to the providers as typed. `notCommand` is set for a leading "/word "
  *   that names no command, and `unavailable` for one that names a command not available here.
@@ -377,8 +385,8 @@ export function parseCommandInput(
   table: CommandTable,
   isAvailable: (command: OmnibarCommandEntry) => boolean,
 ): CommandInput {
-  // Help lists every command, unless an app declares a "help" command of its own
-  if (isHelpQuery(value) && !table.resolve('help')) {
+  // "?" always lists every command; "/help" does too, unless a command answers to "help"
+  if (isQuestionMark(value) || (isSlashHelp(value) && !table.resolve('help'))) {
     return { mode: 'listing', prefix: '', help: true };
   }
   if (!value.startsWith('/')) {

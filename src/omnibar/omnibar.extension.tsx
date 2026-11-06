@@ -121,8 +121,9 @@ const Omnibar: React.FC = () => {
   }, [patient]);
 
   // Slash commands. The chosen command is a chip in the field, and the field then holds only the
-  // query. Without a chip, "/" as the first character with no space yet lists the commands, and
-  // "/alias " chooses one; anything else is plain text, "/word " included. A command is available only
+  // query. Without a chip, "/" as the first character with no space yet lists the commands, "?" alone
+  // or "/help" lists them all with examples, and "/alias " chooses one; anything else is plain text,
+  // "/word " included. A command is available only
   // in a scope one of its providers declares: choosing it never widens the scope, and a command that
   // stops being available (the patient chip removed, say) is dropped.
   const assigned = useAssignedExtensions(providersSlot);

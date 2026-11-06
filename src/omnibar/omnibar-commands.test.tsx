@@ -1123,6 +1123,96 @@ describe('slash commands in the bar', () => {
       expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
     });
 
+    it('chooses the first available command on Enter, as the "/" list does, and sends nothing to Query results', async () => {
+      const user = userEvent.setup();
+      const { patients } = builtIns();
+      inChart();
+      render(<Omnibar />);
+
+      await user.type(screen.getByRole('combobox'), '?');
+      const first = within(screen.getByRole('listbox', { name: 'Commands' })).getAllByRole('option')[0];
+      expect(first).toHaveTextContent('Patients');
+      await user.keyboard('{Enter}');
+
+      expect(screen.getByRole('button', { name: /Remove Patients command/ })).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toHaveValue('');
+      expect(navigate).not.toHaveBeenCalled();
+      expect(patients.seen.at(-1)?.query ?? '').toBe('');
+    });
+
+    it('keeps "?" and its hint when another app answers to "/help", which then lists that app', async () => {
+      const user = userEvent.setup();
+      const { patients, labs, pages } = builtIns();
+      const guide = recording('Guide');
+      mount(
+        [
+          {
+            name: 'omnibar-patient-search-provider',
+            meta: metaFor('omnibar-patient-search-provider'),
+            component: patients.component,
+          },
+          {
+            name: 'omnibar-chart-lookup-provider',
+            meta: metaFor('omnibar-chart-lookup-provider'),
+            component: labs.component,
+          },
+          {
+            name: 'omnibar-destinations-provider',
+            meta: metaFor('omnibar-destinations-provider'),
+            component: pages.component,
+          },
+          {
+            name: 'guide',
+            moduleName: 'guide-app',
+            meta: { lane: 'answer', scopes: ['global'], command: { id: 'kb', aliases: ['help'] } },
+            component: guide.component,
+          },
+        ],
+        views,
+      );
+      inChart();
+      render(<Omnibar />);
+      const field = screen.getByRole('combobox');
+
+      await user.type(field, '/');
+      expect(screen.getByText('Type ? for examples of each command')).toBeInTheDocument();
+
+      await user.clear(field);
+      await user.type(field, '?');
+      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
+
+      await user.clear(field);
+      await user.type(field, '/help');
+      expect(screen.queryByText('Try /lab weight · /lab cd4')).not.toBeInTheDocument();
+      expect(within(screen.getByRole('listbox', { name: 'Commands' })).getAllByRole('option')).toHaveLength(1);
+    });
+
+    it('asks for the modules’ translations, so their examples show, when help opens', async () => {
+      const user = userEvent.setup();
+      const loadNamespaces = vi.fn(() => Promise.resolve());
+      const original = window.i18next;
+      window.i18next = { ...original, on: vi.fn(), off: vi.fn(), loadNamespaces } as never;
+      const things = recording('Things');
+      mount(
+        [
+          {
+            name: 'things',
+            moduleName: 'things-app',
+            meta: { lane: 'record', scopes: ['global'], command: { id: 'things', aliases: ['things'] } },
+            component: things.component,
+          },
+        ],
+        [],
+      );
+      try {
+        render(<Omnibar />);
+        await user.type(screen.getByRole('combobox'), '?');
+        expect(loadNamespaces).toHaveBeenCalledWith(['things-app']);
+      } finally {
+        window.i18next = original;
+      }
+    });
+
     it('greys out a command not available here, without examples', async () => {
       const user = userEvent.setup();
       builtIns();

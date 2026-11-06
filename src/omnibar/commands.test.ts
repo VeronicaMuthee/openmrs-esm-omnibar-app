@@ -481,8 +481,8 @@ describe('parseCommandInput', () => {
     expect(parse('/ cd4')).toEqual({ mode: 'text', text: '/ cd4' });
   });
 
-  it('lists every command for help: "?" alone or "/help"', () => {
-    for (const typed of ['?', ' ? ', '/help', '/HELP ']) {
+  it('lists every command for help: "?" alone, as other keyboards type it too, or "/help"', () => {
+    for (const typed of ['?', ' ? ', '？', '؟', '/help', '/HELP ']) {
       expect(parse(typed)).toEqual({ mode: 'listing', prefix: '', help: true });
     }
     expect(parse('? cd4')).toEqual({ mode: 'text', text: '? cd4' });
@@ -498,6 +498,33 @@ describe('parseCommandInput', () => {
     );
 
     expect(parseCommandInput('/help ', withHelp, inChart)).toMatchObject({ mode: 'chosen', command: { id: 'help' } });
+    expect(parseCommandInput('/help', withHelp, inChart)).toEqual({ mode: 'listing', prefix: 'help' });
+  });
+
+  it('keeps "?" as help whatever answers to "help", even a command not available here', () => {
+    const notHere = (command: { scopes: Array<string> }) => command.scopes.includes('global');
+    const withHelp = buildCommandTable(
+      [provider('guide', { command: { id: 'kb', aliases: ['help'] } })],
+      [],
+      'en',
+      noTranslations,
+    );
+    const helpAliasInConfig = buildCommandTable(
+      [provider('pages', { lane: 'navigate', scopes: ['global'], command: { id: 'go', aliases: ['go'] } })],
+      [{ id: 'go', aliases: ['help'] }],
+      'en',
+      noTranslations,
+    );
+
+    for (const table of [withHelp, helpAliasInConfig]) {
+      for (const isAvailable of [inChart, notHere]) {
+        expect(parseCommandInput('?', table, isAvailable)).toEqual({ mode: 'listing', prefix: '', help: true });
+      }
+    }
+    expect(parseCommandInput('/help ', helpAliasInConfig, notHere)).toMatchObject({
+      mode: 'chosen',
+      command: { id: 'go' },
+    });
   });
 });
 
@@ -517,6 +544,19 @@ describe('command examples', () => {
     );
 
     expect(table.byId.get('order')?.examples).toEqual(['amox', 'metformin', 'cbc']);
+  });
+
+  it('cuts each example to 40 characters and drops direction controls from it', () => {
+    const table = buildCommandTable(
+      [provider('chart', { command: { id: 'lab', aliases: ['lab'] } })],
+      [],
+      'en',
+      translations({
+        [omnibarModule]: { 'omnibarCommand.lab.examples': `\u202Ecd4\u202C, ${'a'.repeat(60)}` },
+      }),
+    );
+
+    expect(table.byId.get('lab')?.examples).toEqual(['cd4', `${'a'.repeat(39)}…`]);
   });
 
   it('has none when no module gives examples', () => {
