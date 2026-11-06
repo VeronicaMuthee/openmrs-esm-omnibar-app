@@ -98,7 +98,8 @@ export interface OmnibarCommandEntry {
   aliases: Array<string>;
   /**
    * What to type after the command, such as `amox` for `/order amox`, from each declaring module's
-   * `omnibarCommand.<id>.examples` (comma-separated), merged and cut to three. Help shows them.
+   * `omnibarCommand.<id>.examples` (comma-separated), merged and cut to three, each module's first
+   * example before any module's second. Help shows them.
    */
   examples: Array<string>;
   /**
@@ -171,7 +172,7 @@ interface Draft {
   id: string;
   label?: string;
   description?: string;
-  examples: Array<string>;
+  examples: Array<{ example: string; turn: number }>;
   providerAliases: Array<string>;
   configAliases: Array<string>;
   scopes: Set<OmnibarScope>;
@@ -190,7 +191,8 @@ const viewOnlyRank = 3;
  * in slot order, then each Query results view's, in its slot's order; each declaring module's
  * translations (`omnibarCommand.<id>.aliases`, comma-separated, `.label`, `.description`,
  * `.examples`, comma-separated); the `commands` config. Declarations sharing an id have their aliases
- * and examples merged, and the label and description come from the first one whose module has them,
+ * and examples merged (each module's first example before any second), and the label and description
+ * come from the first one whose module has them,
  * providers before views. A view counts
  * only as Query results would mount it: for a patient, on a contract this host speaks; its command is
  * available in a chart. Config adds aliases, drops the lower sources' with `replaceAliases`, or removes
@@ -245,7 +247,8 @@ export function buildCommandTable(
       draft.label ??= cleanText(translate(moduleName, `omnibarCommand.${id}.label`), maxLabelLength);
       draft.description ??= cleanText(translate(moduleName, `omnibarCommand.${id}.description`), maxDescriptionLength);
       // Unlike the label, every module's examples count: `/order` finds drugs in one app and tests in another
-      draft.examples.push(...cleanExamples(translate(moduleName, `omnibarCommand.${id}.examples`)));
+      const examples = new Set(cleanExamples(translate(moduleName, `omnibarCommand.${id}.examples`)));
+      draft.examples.push(...Array.from(examples, (example, turn) => ({ example, turn })));
     }
   };
 
@@ -322,7 +325,11 @@ export function buildCommandTable(
       id: draft.id,
       label: draft.label ?? aliases[0],
       description: draft.description,
-      examples: [...new Set(draft.examples)].slice(0, maxExamples),
+      // Each module's first example, then each one's second, in module order: the sort is stable
+      examples: [...new Set(draft.examples.sort((a, b) => a.turn - b.turn).map(({ example }) => example))].slice(
+        0,
+        maxExamples,
+      ),
       aliases,
       scopes: scopes.filter((scope) => draft.scopes.has(scope)),
     });

@@ -1804,8 +1804,16 @@ On `feat/help-command`. `?` alone lists every command, as a bare `/` does, with 
 | code, nit: Arabic keyboards type `؟` and Chinese and Japanese input methods `？`, so the hint pointed at a key that didn't work there | Both open help | 83cea9f |
 | code, question: three long examples at phone width | Checked at 375 px on a chart: three 40-character examples wrap to three lines, with no horizontal scroll | n/a |
 
+### Review on the PR (Daniel)
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| should, before merge: the `/` list's hint says to type `?`, but `/?` read as "No command /?" | A `?` typed in the `/` list opens help for what that list shows: `/?` all, `/la?` what `/la` lists. Parser cases for `/?`, `/la?` and `/help?`, and a bar test that follows the hint | f17734b |
+| nit: cutting merged examples to three let one module's three crowd out another's, so `/order` could show drugs and no lab tests | Each module's first example, then each one's second, in module order; a test with a first module giving three | this commit |
+
 Checked and fine: examples go through `cleanText` and render as React text, and i18next doesn't expand `{{…}}` or `$t(…)` inside an interpolated value; no provider is mounted while help shows; commands not available here show no examples; the composition guard covers Enter on the help list.
 
 Not fixed, and why:
 
+- `looksLikeQuestion` and `looksLikeIdentifier` in `query-hints.ts` still know only the ASCII `?`, so `weight?` reads as a question but `الوزن؟` and `体重多少？` don't, though help accepts all three marks. Both must change together, or `12345？` reads as a question about an ID, and the contract doc's "ending in `?`" with them. Raised by Daniel in review; left for a follow-up, since it changes the contract folder and how questions reach a model, not help.
 - Right-to-left layout of "Try /order amox" under `dir="auto"` wasn't checked in a browser: there's no Arabic catalogue on the local server. A translator's string decides the order there.

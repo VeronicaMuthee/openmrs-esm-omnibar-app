@@ -554,6 +554,23 @@ describe('command examples', () => {
     expect(table.byId.get('order')?.examples).toEqual(['amox', 'metformin', 'cbc']);
   });
 
+  it('takes each module’s first example before any module’s second, so a module giving three leaves room', () => {
+    const table = buildCommandTable(
+      [
+        provider('drugs', { command: { id: 'order', aliases: ['order'] } }, 'drugs-app'),
+        provider('tests', { command: { id: 'order', aliases: ['order'] } }, 'tests-app'),
+      ],
+      [],
+      'en',
+      translations({
+        'drugs-app': { 'omnibarCommand.order.examples': 'amox, metformin, paracetamol' },
+        'tests-app': { 'omnibarCommand.order.examples': 'cbc' },
+      }),
+    );
+
+    expect(table.byId.get('order')?.examples).toEqual(['amox', 'cbc', 'metformin']);
+  });
+
   it('cuts each example to 40 characters and drops direction controls from it', () => {
     const table = buildCommandTable(
       [provider('chart', { command: { id: 'lab', aliases: ['lab'] } })],
