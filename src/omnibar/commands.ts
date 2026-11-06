@@ -370,7 +370,8 @@ export function orderForListing(
 /**
  * What the field holds, read for a command. Only a "/" as the very first character starts one.
  * - listing: "/" and a word still being typed; the bar lists the commands that word could start. With
- *   `help`, "?" alone or "/help" (when no command answers to "help"): every command, with examples
+ *   `help`, "?" alone or "/help" (when no command answers to "help"): every command, with examples;
+ *   or a "?" typed after a "/" word, as the "/" list's hint says: what that word lists, with examples
  * - chosen: "/" and an alias of a command available here, then a space; the rest is the query
  * - text: anything else, sent to the providers as typed. `notCommand` is set for a leading "/word "
  *   that names no command, and `unavailable` for one that names a command not available here.
@@ -388,6 +389,12 @@ export function parseCommandInput(
   // "?" always lists every command; "/help" does too, unless a command answers to "help"
   if (isQuestionMark(value) || (isSlashHelp(value) && !table.resolve('help'))) {
     return { mode: 'listing', prefix: '', help: true };
+  }
+  // A "?" typed in the "/" list, as its hint says, lists what that list shows, with examples: "/la?" as "/la"
+  const asked = /^(\/[^\s?？؟]*)[?？؟]$/u.exec(value);
+  if (asked) {
+    const shown = parseCommandInput(asked[1], table, isAvailable);
+    return { mode: 'listing', prefix: shown.mode === 'listing' ? shown.prefix : '', help: true };
   }
   if (!value.startsWith('/')) {
     return { mode: 'text', text: value };

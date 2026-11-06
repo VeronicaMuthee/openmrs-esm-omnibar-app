@@ -1119,6 +1119,13 @@ describe('slash commands in the bar', () => {
       await user.type(screen.getByRole('combobox'), '/');
       expect(screen.getByText('Type ? for examples of each command')).toBeInTheDocument();
 
+      // Following the hint: "?" typed in the "/" list opens help, not "No command /?"
+      await user.type(screen.getByRole('combobox'), '?');
+      expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
+      expect(screen.queryByText('No command /?')).not.toBeInTheDocument();
+      await user.clear(screen.getByRole('combobox'));
+      await user.type(screen.getByRole('combobox'), '/');
+
       await user.type(screen.getByRole('combobox'), 'help');
       expect(screen.getByText('Try /lab weight · /lab cd4')).toBeInTheDocument();
     });

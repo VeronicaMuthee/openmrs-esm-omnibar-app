@@ -489,6 +489,14 @@ describe('parseCommandInput', () => {
     expect(parse('what is this?')).toEqual({ mode: 'text', text: 'what is this?' });
   });
 
+  it('reads a "?" typed in the "/" list, as its hint says, as help for what that list shows', () => {
+    expect(parse('/?')).toEqual({ mode: 'listing', prefix: '', help: true });
+    expect(parse('/la?')).toEqual({ mode: 'listing', prefix: 'la', help: true });
+    expect(parse('/la？')).toEqual({ mode: 'listing', prefix: 'la', help: true });
+    expect(parse('/help?')).toEqual({ mode: 'listing', prefix: '', help: true });
+    expect(parse('/lab ?')).toMatchObject({ mode: 'chosen', command: { id: 'lab' }, rest: '?' });
+  });
+
   it('leaves "/help" to an app that declares a help command of its own', () => {
     const withHelp = buildCommandTable(
       [provider('guide', { command: { id: 'help', aliases: ['help'] } })],
