@@ -54,6 +54,26 @@ describe('the slash-command alias table', () => {
     }
   });
 
+  it.each([
+    ['Arabic', 'طلب، دواء', 'أموكسي، سيبرو', ['طلب', 'دواء'], ['أموكسي', 'سيبرو']],
+    ['Chinese', '开药，处方', '阿莫西林，二甲双胍、血常规', ['开药', '处方'], ['阿莫西林', '二甲双胍', '血常规']],
+  ])(
+    'splits a translated list on the comma %s is written with',
+    (_, aliases, examples, splitAliases, splitExamples) => {
+      const table = buildCommandTable(
+        [provider('drugs', { command: { id: 'order', aliases: ['order'] } }, 'drugs-app')],
+        [],
+        'en',
+        translations({
+          'drugs-app': { 'omnibarCommand.order.aliases': aliases, 'omnibarCommand.order.examples': examples },
+        }),
+      );
+
+      expect(aliasesOf(table, 'order')).toEqual(['order', ...splitAliases]);
+      expect(table.byId.get('order')?.examples).toEqual(splitExamples);
+    },
+  );
+
   it('drops the lower sources’ aliases when config replaces them', () => {
     const table = buildCommandTable(
       [provider('pages', { command: { id: 'go', aliases: ['go', 'open', 'page'] } })],

@@ -84,8 +84,11 @@ export function cleanText(text: unknown, maxLength: number): string | undefined 
   return characters.length > maxLength ? `${characters.slice(0, maxLength - 1).join('')}…` : plain;
 }
 
+/** The comma a translated list is written with: ASCII, Arabic, full-width or ideographic. */
+const listSeparator = /[,،，、]/u;
+
 const cleanExamples = (text: string | undefined): Array<string> =>
-  (text?.split(',') ?? [])
+  (text?.split(listSeparator) ?? [])
     .map((example) => cleanText(example, maxExampleLength))
     .filter((example): example is string => Boolean(example));
 
@@ -243,7 +246,7 @@ export function buildCommandTable(
     if (typeof moduleName === 'string' && !draft.modules.has(moduleName)) {
       draft.modules.add(moduleName);
       const translated = translate(moduleName, `omnibarCommand.${id}.aliases`);
-      draft.providerAliases.push(...cleanAliases(translated?.split(',')));
+      draft.providerAliases.push(...cleanAliases(translated?.split(listSeparator)));
       draft.label ??= cleanText(translate(moduleName, `omnibarCommand.${id}.label`), maxLabelLength);
       draft.description ??= cleanText(translate(moduleName, `omnibarCommand.${id}.description`), maxDescriptionLength);
       // Unlike the label, every module's examples count: `/order` finds drugs in one app and tests in another
