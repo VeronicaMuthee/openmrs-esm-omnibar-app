@@ -1121,6 +1121,44 @@ describe('slash commands in the bar', () => {
       expect(screen.getByRole('combobox')).toHaveValue('');
     });
 
+    it('says to type "?" only when a command listed and available here has examples', async () => {
+      const user = userEvent.setup();
+      builtIns();
+      render(<Omnibar />);
+      const field = screen.getByRole('combobox');
+
+      // Outside a chart, "/la" lists Chart values greyed out, so "?" would add no example
+      await user.type(field, '/la');
+      expect(screen.getByText('Chart values')).toBeInTheDocument();
+      expect(screen.queryByText('Type ? for examples of each command')).not.toBeInTheDocument();
+
+      // The whole list has Patients, which works here and has one
+      await user.clear(field);
+      await user.type(field, '/');
+      expect(screen.getByText('Type ? for examples of each command')).toBeInTheDocument();
+    });
+
+    it('doesn’t say to type "?" for commands that work here but whose apps give no examples', async () => {
+      const user = userEvent.setup();
+      mount(
+        [
+          {
+            name: 'things',
+            moduleName: 'things-app',
+            meta: { lane: 'record', scopes: ['global'], command: { id: 'things', aliases: ['things'] } },
+            component: recording('Things').component,
+          },
+        ],
+        [],
+      );
+      render(<Omnibar />);
+
+      await user.type(screen.getByRole('combobox'), '/');
+      expect(screen.getByText('/things')).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /things/ })).not.toHaveAttribute('aria-disabled', 'true');
+      expect(screen.queryByText('Type ? for examples of each command')).not.toBeInTheDocument();
+    });
+
     it('opens for "/help" too, and the "/" list says how to get it', async () => {
       const user = userEvent.setup();
       builtIns();

@@ -1144,11 +1144,13 @@ const Omnibar: React.FC = () => {
               })}
             </ul>
           )}
-          {listing && !help && listedCommands.length > 0 && (
-            <p className={styles.commandNote} dir="auto">
-              {t('helpHint', 'Type ? for examples of each command')}
-            </p>
-          )}
+          {listing &&
+            !help &&
+            listedCommands.some((command) => isAvailable(command) && command.examples.length > 0) && (
+              <p className={styles.commandNote} dir="auto">
+                {t('helpHint', 'Type ? for examples of each command')}
+              </p>
+            )}
           {listing && !listedCommands.length && (
             <p className={styles.commandNote} dir="auto">
               {parsedInput?.mode === 'listing' && parsedInput.prefix
