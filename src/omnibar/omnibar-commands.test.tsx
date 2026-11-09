@@ -320,6 +320,21 @@ describe('slash commands in the bar', () => {
       expect(field).toHaveFocus();
     });
 
+    it.each(['/', '?'])('moves focus back with Shift+Tab after %j, choosing no command', async (typed) => {
+      const user = userEvent.setup();
+      builtIns();
+      inChart();
+      render(<Omnibar />);
+      const field = screen.getByRole('combobox');
+
+      await user.type(field, typed);
+      expect(screen.getByRole('option', { name: /patients/i })).toHaveAttribute('aria-selected', 'true');
+      await user.tab({ shift: true });
+
+      expect(screen.getByRole('button', { name: 'Remove Jane Doe context' })).toHaveFocus();
+      expect(field).toHaveValue(typed);
+    });
+
     describe('order', () => {
       // As on o3: another app's navigate-lane provider is assigned before the omnibar's own.
       const withCohorts = () => {

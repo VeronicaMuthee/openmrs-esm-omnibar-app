@@ -641,7 +641,8 @@ const Omnibar: React.FC = () => {
   };
 
   // While the commands are listed, the arrow keys move through the ones available here, and Enter or
-  // Tab chooses the highlighted one. Enter never does anything else there.
+  // Tab chooses the highlighted one. Enter never does anything else there. Shift+Tab moves focus, as it
+  // always does in the field.
   const onCommandListKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const available = listedCommands.filter(isAvailable);
     switch (event.key) {
@@ -660,7 +661,7 @@ const Omnibar: React.FC = () => {
       }
       case 'Enter':
       case 'Tab':
-        if (event.nativeEvent.isComposing) return;
+        if (event.nativeEvent.isComposing || (event.key === 'Tab' && event.shiftKey)) return;
         if (highlightedCommand) {
           event.preventDefault();
           chooseCommand(highlightedCommand);
